@@ -61,15 +61,12 @@ export function Login() {
         {/* Header */}
         <div className="mb-8 text-center">
           <div
-            className="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4"
-            style={{
-              background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-              boxShadow: "0 8px 32px rgba(59,130,246,0.4)",
-            }}
+            className="w-16 h-16 mx-auto rounded-xl flex items-center justify-center mb-4"
+            style={{ backgroundColor: "var(--primary)" }}
           >
             <span
-              className="font-black text-2xl"
-              style={{ color: "#ffffff" }}
+              className="font-bold text-3xl"
+              style={{ color: "var(--primary-foreground)" }}
             >
               V
             </span>
@@ -89,7 +86,13 @@ export function Login() {
         </div>
 
         {/* Card */}
-        <div className="vera-card p-6">
+        <div
+          className="rounded-xl p-6 shadow-2xl"
+          style={{
+            backgroundColor: "var(--card)",
+            border: "1px solid var(--border)",
+          }}
+        >
           <h2
             className="text-lg font-bold mb-1"
             style={{ color: "var(--foreground)" }}

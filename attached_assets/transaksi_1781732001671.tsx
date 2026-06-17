@@ -50,9 +50,9 @@ export function Transaksi() {
 
   const checkStatusMutation = useCheckTransactionStatus();
 
-  const handleCheck = (ref: string) => {
+  const handleCheck = (id: number) => {
     checkStatusMutation.mutate(
-      { ref },
+      { id },
       {
         onSuccess: () => {
           toast({ title: "Status berhasil diperbarui" });
@@ -124,7 +124,7 @@ export function Transaksi() {
                     style={{
                       color: "var(--muted-foreground)",
                       borderBottom: "1px solid var(--border)",
-                      backgroundColor: "rgba(255,255,255,0.03)",
+                      backgroundColor: "rgba(42,47,62,0.3)",
                     }}
                   >
                     {h}
@@ -135,7 +135,7 @@ export function Transaksi() {
             <tbody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <tr key={i} style={{ borderBottom: "1px solid rgba(42,47,62,0.5)" }}>
                     <td colSpan={6} className="py-4 px-4 text-center">
                       <div
                         className="h-4 rounded animate-pulse mx-auto"
@@ -149,9 +149,10 @@ export function Transaksi() {
                   <tr
                     key={tx.id}
                     className="transition-colors"
-                    style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+                    style={{ borderBottom: "1px solid rgba(42,47,62,0.5)" }}
                     onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.03)")
+                      ((e.currentTarget as HTMLElement).style.backgroundColor =
+                        "rgba(42,47,62,0.3)")
                     }
                     onMouseLeave={(e) =>
                       ((e.currentTarget as HTMLElement).style.backgroundColor = "transparent")
@@ -177,7 +178,7 @@ export function Transaksi() {
                       {tx.status === "MENUNGGU" && (
                         <button
                           className="btn-action"
-                          onClick={() => handleCheck(tx.ref)}
+                          onClick={() => handleCheck(tx.id)}
                           disabled={checkStatusMutation.isPending}
                           title="Cek status dari provider"
                         >
