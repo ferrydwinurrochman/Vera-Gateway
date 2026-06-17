@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, transactionsTable, merchantsTable, settingsTable, TX_STATUS } from "@workspace/db";
-import { eq, desc, and, gte, lte, ilike, or, sql } from "drizzle-orm";
+import { eq, desc, and, gte, lte, like, or, sql, inArray } from "drizzle-orm";
 import { createDeposit, checkDepositStatus, parseCallback } from "../lib/flypay";
 import { generateRef } from "../lib/auth";
 import {
@@ -85,8 +85,8 @@ router.get("/", async (req, res) => {
   if (params.search) {
     conditions.push(
       or(
-        ilike(transactionsTable.ref, `%${params.search}%`),
-        ilike(transactionsTable.customerId, `%${params.search}%`)
+        like(transactionsTable.ref, `%${params.search}%`),
+        like(transactionsTable.customerId, `%${params.search}%`)
       )
     );
   }
@@ -97,18 +97,16 @@ router.get("/", async (req, res) => {
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const [rows, [{ count }]] = await Promise.all([
+  const [rows, countRows] = await Promise.all([
     db.select().from(transactionsTable).where(whereClause).orderBy(desc(transactionsTable.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql<number>`count(*)::int` }).from(transactionsTable).where(whereClause),
+    db.select({ count: sql<string>`cast(count(*) as unsigned)` }).from(transactionsTable).where(whereClause),
   ]);
+  const count = Number(countRows[0]?.count ?? 0);
 
   const merchantIds = [...new Set(rows.map((r) => r.merchantId).filter(Boolean))] as number[];
   const merchants = merchantIds.length > 0
-    ? await db.select({ id: merchantsTable.id, name: merchantsTable.name }).from(merchantsTable).where(
-        merchantIds.length === 1
-          ? eq(merchantsTable.id, merchantIds[0])
-          : sql`${merchantsTable.id} = ANY(${merchantIds})`
-      )
+    ? await db.select({ id: merchantsTable.id, name: merchantsTable.name }).from(merchantsTable)
+        .where(inArray(merchantsTable.id, merchantIds))
     : [];
 
   const merchantMap = new Map(merchants.map((m) => [m.id, m.name]));
@@ -229,10 +227,11 @@ router.get("/sukses", async (req, res) => {
 
   const whereClause = and(...conditions);
 
-  const [rows, [{ count }]] = await Promise.all([
+  const [rows, countRows] = await Promise.all([
     db.select().from(transactionsTable).where(whereClause).orderBy(desc(transactionsTable.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql<number>`count(*)::int` }).from(transactionsTable).where(whereClause),
+    db.select({ count: sql<string>`cast(count(*) as unsigned)` }).from(transactionsTable).where(whereClause),
   ]);
+  const count = Number(countRows[0]?.count ?? 0);
 
   res.json({
     data: rows.map((r) => formatTx(r)),

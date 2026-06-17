@@ -1,2 +1,3 @@
 - [Dashboard SQL fix](dashboard-sql.md) — use `inArray()` not raw `ANY()` syntax for merchantIds lookup in dashboard summary route.
 - [API server startup quirks](api-server-startup.md) — mysql2 must be bundled (not external), PORT and BASE_PATH must be injected in dev workflow commands.
+- [MySQL-only SQL constraints](mysql-sql-constraints.md) — never use PostgreSQL-isms (::int cast, ilike, ANY()) in drizzle raw sql`` templates; use CAST(... AS UNSIGNED), like(), inArray() instead.

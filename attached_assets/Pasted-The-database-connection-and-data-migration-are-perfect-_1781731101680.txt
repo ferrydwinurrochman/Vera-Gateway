@@ -1,0 +1,28 @@
+The database connection and data migration are perfect. DO NOT touch the database schema, data, or connection settings anymore. 
+
+Now, I am completely unsatisfied with the current Frontend UI and some integrations. The layout is messy, functions like Logout are broken, and I am not convinced the Flypay logic matches my legacy file. 
+
+Your ONLY task now is to fix the UI layout, repair broken functions, and verify the backend API logic. STRICTLY follow these instructions:
+
+1. FIX UI SKELETON & DESIGN (Hybrid Approach)
+- Look at the legacy `index.php` file uploaded in this workspace. Observe its UI structure: A persistent Sidebar on the left, a Topbar, and a Main Content Area.
+- REBUILD the current React layout to match this EXACT structural skeleton.
+- HOWEVER, for the styling (CSS/Tailwind), you MUST use the modern, glassmorphism design system from the `v0` files I provided earlier. NO terminal/hacker themes. Clean, modern, Apple-inspired UI only.
+
+2. FIX BROKEN FUNCTIONS (e.g., Logout)
+- The Logout button is currently unclickable or not working.
+- Fix the authentication flow. Ensure the Logout function properly clears the session/token/cookies and forcefully redirects the user to the `/login` page. Check all interactive buttons in the Sidebar and Topbar to ensure they are functional.
+
+3. STRICT FLYPAY API INTEGRATION (Mirror index.php)
+- Open `index.php` and examine the `flypay_sign()`, `flypay_create_deposit()`, and `flypay_parse_callback()` functions.
+- Ensure your Node.js backend implements the exact same MD5 signature logic (sorting keys, skipping 'sn' and 'notifyUrl', replacing '%20' with '+', and appending the secret).
+- Ensure the webhook endpoint handles the callback exactly as the PHP script did.
+
+4. ENFORCE CORE BUSINESS RULES
+- Verify the Status Lock: If a transaction status is `SUKSES`, the backend must REJECT any attempt (webhook or manual) to change it to `GAGAL` or `MENUNGGU`.
+- Verify the 20-Minute Cooldown: The public top-up route (`/[merchantSlug]`) must block a user from generating a new QRIS if they already have a `MENUNGGU` transaction created within the last 20 minutes for that merchant.
+
+5. DASHBOARD REFRESH
+- Ensure the TanStack Query `refetchInterval` is working so the transaction table updates automatically without reloading the page or jumping the scrollbar.
+
+Please execute these fixes in parallel, test the logout button, and ensure the layout perfectly mimics the index.php structure with the v0 aesthetic.

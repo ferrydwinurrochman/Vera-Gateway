@@ -7,7 +7,6 @@ const router = Router();
 
 function getPeriodStart(period: string): Date | null {
   const now = new Date();
-  // Use Asia/Jakarta timezone offset (UTC+7)
   const jakartaOffset = 7 * 60 * 60 * 1000;
   const jakartaTime = new Date(now.getTime() + jakartaOffset - now.getTimezoneOffset() * 60000);
 
@@ -35,7 +34,6 @@ router.get("/summary", async (req, res) => {
   const role = session["role"] as string | undefined;
   const sessionMerchantId = session["merchantId"] as number | null | undefined;
 
-  // Operators are scoped to their own merchant; only admin sees all
   const merchantFilter =
     role === "operator" && sessionMerchantId != null
       ? eq(transactionsTable.merchantId, sessionMerchantId)
@@ -43,27 +41,24 @@ router.get("/summary", async (req, res) => {
 
   const periodStart = getPeriodStart(period);
 
-  // Total counts (all time, scoped by merchant if operator)
   const totalRows = await db.select({
     status: transactionsTable.status,
-    count: sql<number>`count(*)::int`,
-    amount: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)::int`,
+    count: sql<string>`cast(count(*) as unsigned)`,
+    amount: sql<string>`cast(coalesce(sum(${transactionsTable.amount}), 0) as unsigned)`,
   }).from(transactionsTable).where(merchantFilter).groupBy(transactionsTable.status);
 
-  const totalTransactions = totalRows.reduce((s, r) => s + r.count, 0);
-  const totalAmount = totalRows.reduce((s, r) => s + r.amount, 0);
+  const totalTransactions = totalRows.reduce((s, r) => s + Number(r.count), 0);
+  const totalAmount = totalRows.reduce((s, r) => s + Number(r.amount), 0);
 
-  // Today stats (always use today, scoped by merchant if operator)
   const todayStart = getPeriodStart("today")!;
   const todayCondition = merchantFilter
     ? and(gte(transactionsTable.createdAt, todayStart), merchantFilter)
     : gte(transactionsTable.createdAt, todayStart);
   const [todayRow] = await db.select({
-    count: sql<number>`count(*)::int`,
-    amount: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)::int`,
+    count: sql<string>`cast(count(*) as unsigned)`,
+    amount: sql<string>`cast(coalesce(sum(${transactionsTable.amount}), 0) as unsigned)`,
   }).from(transactionsTable).where(todayCondition);
 
-  // Period-filtered by status, scoped by merchant if operator
   const periodCondition = periodStart
     ? merchantFilter
       ? and(gte(transactionsTable.createdAt, periodStart), merchantFilter)
@@ -72,8 +67,8 @@ router.get("/summary", async (req, res) => {
   const periodRows = periodCondition
     ? await db.select({
         status: transactionsTable.status,
-        count: sql<number>`count(*)::int`,
-        amount: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)::int`,
+        count: sql<string>`cast(count(*) as unsigned)`,
+        amount: sql<string>`cast(coalesce(sum(${transactionsTable.amount}), 0) as unsigned)`,
       }).from(transactionsTable).where(periodCondition).groupBy(transactionsTable.status)
     : totalRows;
 
@@ -84,10 +79,13 @@ router.get("/summary", async (req, res) => {
     { status: "KEDALUWARSA", count: 0, amount: 0 },
   ].map((def) => {
     const row = periodRows.find((r) => r.status === def.status);
-    return { status: def.status, count: row?.count ?? 0, amount: row?.amount ?? 0 };
+    return {
+      status: def.status,
+      count: row ? Number(row.count) : 0,
+      amount: row ? Number(row.amount) : 0,
+    };
   });
 
-  // Top merchants (SUKSES only, scoped by merchant if operator)
   const topMerchantsWhere = merchantFilter
     ? and(eq(transactionsTable.status, "SUKSES"), merchantFilter)
     : eq(transactionsTable.status, "SUKSES");
@@ -95,8 +93,8 @@ router.get("/summary", async (req, res) => {
   const topMerchantsRaw = await db
     .select({
       merchantId: transactionsTable.merchantId,
-      count: sql<number>`count(*)::int`,
-      amount: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)::int`,
+      count: sql<string>`cast(count(*) as unsigned)`,
+      amount: sql<string>`cast(coalesce(sum(${transactionsTable.amount}), 0) as unsigned)`,
     })
     .from(transactionsTable)
     .where(topMerchantsWhere)
@@ -121,15 +119,15 @@ router.get("/summary", async (req, res) => {
     .map((r) => ({
       merchantId: r.merchantId!,
       merchantName: merchantMap.get(r.merchantId!) ?? "Unknown",
-      count: r.count,
-      amount: r.amount,
+      count: Number(r.count),
+      amount: Number(r.amount),
     }));
 
   res.json({
     totalTransactions,
     totalAmount,
-    todayCount: todayRow?.count ?? 0,
-    todayAmount: todayRow?.amount ?? 0,
+    todayCount: todayRow ? Number(todayRow.count) : 0,
+    todayAmount: todayRow ? Number(todayRow.amount) : 0,
     byStatus,
     topMerchants,
   });

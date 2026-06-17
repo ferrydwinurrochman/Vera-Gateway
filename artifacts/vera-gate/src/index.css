@@ -4,8 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, 'Courier New', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Courier New', monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -42,33 +42,33 @@
 
 :root {
   color-scheme: dark;
-  --background: #0f1419;
-  --foreground: #e4e7eb;
-  --card: #1a1f2e;
-  --card-foreground: #e4e7eb;
-  --popover: #1a1f2e;
-  --popover-foreground: #e4e7eb;
-  --primary: #0066cc;
+  --background: #0d1b2a;
+  --foreground: #e8edf3;
+  --card: rgba(255, 255, 255, 0.05);
+  --card-foreground: #e8edf3;
+  --popover: #1a2d42;
+  --popover-foreground: #e8edf3;
+  --primary: #3b82f6;
   --primary-foreground: #ffffff;
-  --secondary: #1a3a52;
-  --secondary-foreground: #e4e7eb;
-  --muted: #2a2f3e;
-  --muted-foreground: #8b8f99;
-  --accent: #00a4ef;
-  --accent-foreground: #0f1419;
+  --secondary: #1e3a5f;
+  --secondary-foreground: #c8d8ea;
+  --muted: rgba(255, 255, 255, 0.07);
+  --muted-foreground: #7a9bb8;
+  --accent: #60a5fa;
+  --accent-foreground: #0d1b2a;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #2a2f3e;
-  --input: #1a1f2e;
-  --ring: #0066cc;
-  --radius: 0.625rem;
-  --sidebar: #0f1419;
-  --sidebar-foreground: #e4e7eb;
-  --sidebar-primary: #0066cc;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.07);
+  --ring: #3b82f6;
+  --radius: 0.75rem;
+  --sidebar: #0a1628;
+  --sidebar-foreground: #e8edf3;
+  --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #00a4ef;
-  --sidebar-accent-foreground: #0f1419;
-  --sidebar-border: #2a2f3e;
+  --sidebar-accent: #60a5fa;
+  --sidebar-accent-foreground: #0d1b2a;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -79,9 +79,14 @@
   }
   body {
     background-color: var(--background);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(59, 130, 246, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(30, 58, 95, 0.2) 0%, transparent 60%);
+    background-attachment: fixed;
     color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
   }
   input, select, textarea {
     background-color: var(--input);
@@ -91,92 +96,108 @@
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 font-bold text-sm px-4 py-2.5 rounded-lg cursor-pointer transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    @apply inline-flex items-center justify-center gap-2 font-semibold text-sm px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
   }
   .btn-primary:hover:not(:disabled) {
-    background-color: #0055aa;
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
   }
 
   .btn-alt {
-    @apply inline-flex items-center justify-center gap-2 font-bold text-sm px-4 py-2.5 rounded-lg cursor-pointer transition-all duration-200 active:scale-95;
-    background-color: var(--card);
+    @apply inline-flex items-center justify-center gap-2 font-semibold text-sm px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95;
+    background-color: rgba(255, 255, 255, 0.06);
     color: var(--foreground);
-    border: 1.5px solid var(--border);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
   }
   .btn-alt:hover {
-    background-color: var(--muted);
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 font-bold text-sm px-4 py-2.5 rounded-lg cursor-pointer transition-all duration-200 active:scale-95;
-    background-color: var(--destructive);
-    color: var(--destructive-foreground);
+    @apply inline-flex items-center justify-center gap-2 font-semibold text-sm px-4 py-2.5 rounded-xl cursor-pointer transition-all duration-200 active:scale-95;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
   }
   .btn-danger:hover {
-    background-color: #dc2626;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
+    transform: translateY(-1px);
   }
 
   .btn-action {
-    @apply inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all;
-    border: 1px solid var(--border);
-    background-color: var(--card);
-    color: var(--primary);
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-all;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    background-color: rgba(59, 130, 246, 0.08);
+    color: #60a5fa;
   }
   .btn-action:hover {
-    background-color: var(--muted);
+    background-color: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.5);
   }
   .btn-action-danger {
-    @apply inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all;
-    border: 1px solid var(--border);
-    background-color: var(--card);
-    color: var(--destructive);
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-all;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background-color: rgba(239, 68, 68, 0.06);
+    color: #f87171;
   }
   .btn-action-danger:hover {
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: rgba(239, 68, 68, 0.12);
   }
 
   .vera-card {
-    background-color: var(--card);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-lg);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
   .vera-input {
-    @apply w-full rounded-lg px-3 py-2 text-sm outline-none transition-colors placeholder:opacity-50;
-    background-color: var(--background);
-    border: 1px solid var(--border);
+    @apply w-full rounded-xl px-3 py-2.5 text-sm outline-none transition-all placeholder:opacity-40;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: var(--foreground);
+    backdrop-filter: blur(4px);
   }
   .vera-input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 1px var(--primary);
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .vera-label {
-    @apply text-xs font-bold uppercase tracking-wider mb-1.5 block;
+    @apply text-xs font-semibold uppercase tracking-wider mb-1.5 block;
     color: var(--muted-foreground);
   }
 
   .status-sukses {
-    @apply px-2 py-1 rounded text-xs font-bold;
-    background-color: rgba(34, 197, 94, 0.15);
+    @apply px-2.5 py-1 rounded-lg text-xs font-semibold;
+    background: rgba(34, 197, 94, 0.12);
     color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.2);
   }
   .status-menunggu {
-    @apply px-2 py-1 rounded text-xs font-bold;
-    background-color: rgba(234, 179, 8, 0.15);
-    color: #facc15;
+    @apply px-2.5 py-1 rounded-lg text-xs font-semibold;
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.2);
   }
   .status-gagal {
-    @apply px-2 py-1 rounded text-xs font-bold;
-    background-color: rgba(239, 68, 68, 0.15);
+    @apply px-2.5 py-1 rounded-lg text-xs font-semibold;
+    background: rgba(239, 68, 68, 0.12);
     color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
   }
   .status-kedaluwarsa {
-    @apply px-2 py-1 rounded text-xs font-bold;
-    background-color: rgba(107, 114, 128, 0.15);
+    @apply px-2.5 py-1 rounded-lg text-xs font-semibold;
+    background: rgba(107, 114, 128, 0.12);
     color: #9ca3af;
+    border: 1px solid rgba(107, 114, 128, 0.2);
   }
 }
