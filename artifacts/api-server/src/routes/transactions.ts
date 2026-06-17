@@ -287,6 +287,72 @@ router.post("/callback", async (req, res) => {
   }
 });
 
+// GET /transactions/export-csv
+router.get("/export-csv", async (req, res) => {
+  try {
+    const session = req.session as Record<string, unknown>;
+    if (!session["userId"]) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const role = session["role"] as string | undefined;
+    const merchantId = session["merchantId"] as number | null | undefined;
+    const conditions = [];
+    if (role === "operator" && merchantId != null) conditions.push(eq(transactionsTable.merchantId, merchantId));
+    const rows = await db.select().from(transactionsTable)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(transactionsTable.createdAt));
+    const lines = ["Ref No,Tanggal,Username,Metode,Nominal,Status,Catatan"];
+    for (const r of rows) {
+      lines.push([r.ref, r.createdAt.toISOString(), r.customerId ?? "", r.method ?? "", r.amount, r.status, r.notes ?? ""]
+        .map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
+    }
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=veragate_transaksi.csv");
+    res.send(lines.join("\n"));
+  } catch (error) {
+    console.error("[transactions] GET /export-csv", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /transactions/export-json
+router.get("/export-json", async (req, res) => {
+  try {
+    const session = req.session as Record<string, unknown>;
+    if (!session["userId"]) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const role = session["role"] as string | undefined;
+    const merchantId = session["merchantId"] as number | null | undefined;
+    const conditions = [];
+    if (role === "operator" && merchantId != null) conditions.push(eq(transactionsTable.merchantId, merchantId));
+    const rows = await db.select().from(transactionsTable)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(transactionsTable.createdAt));
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Disposition", "attachment; filename=veragate_transaksi.json");
+    res.json(rows.map(r => formatTx(r)));
+  } catch (error) {
+    console.error("[transactions] GET /export-json", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /transactions/reset
+router.post("/reset", async (req, res) => {
+  try {
+    const session = req.session as Record<string, unknown>;
+    const role = session["role"] as string | undefined;
+    if (role !== "admin") { res.status(403).json({ error: "Admin only" }); return; }
+    const merchantId = session["merchantId"] as number | null | undefined;
+    if (merchantId != null) {
+      await db.delete(transactionsTable).where(eq(transactionsTable.merchantId, merchantId));
+    } else {
+      await db.delete(transactionsTable);
+    }
+    res.json({ success: true, message: "Semua transaksi berhasil dihapus." });
+  } catch (error) {
+    console.error("[transactions] POST /reset", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /transactions/:id
 router.get("/:id", async (req, res) => {
   try {

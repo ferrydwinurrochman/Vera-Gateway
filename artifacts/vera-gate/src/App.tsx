@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,12 +10,12 @@ import { Layout } from "@/components/layout";
 import NotFound from "@/pages/not-found";
 import { Login } from "@/pages/login";
 import { Dashboard } from "@/pages/dashboard";
-import { Transaksi } from "@/pages/transaksi";
-import { Sukses } from "@/pages/sukses";
-import { Topup } from "@/pages/topup";
-import { Merchants } from "@/pages/merchants";
+import { PaymentLink } from "@/pages/payment-link";
+import { Report } from "@/pages/report";
+import { Tools } from "@/pages/tools";
+import { Merchant } from "@/pages/merchant";
 import { Users } from "@/pages/users";
-import { Settings } from "@/pages/settings";
+import { Provider } from "@/pages/provider";
 import { PublicTopup } from "@/pages/public-topup";
 
 const queryClient = new QueryClient();
@@ -32,6 +32,22 @@ function DarkModeManager() {
   return null;
 }
 
+function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <Layout>{children}</Layout>
+    </ProtectedRoute>
+  );
+}
+
+function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute requireAdmin>
+      <Layout>{children}</Layout>
+    </ProtectedRoute>
+  );
+}
+
 function Router() {
   return (
     <Switch>
@@ -39,59 +55,39 @@ function Router() {
       <Route path="/" component={Login} />
 
       <Route path="/dashboard">
-        <ProtectedRoute>
-          <Layout>
-            <Dashboard />
-          </Layout>
-        </ProtectedRoute>
+        <ProtectedLayout><Dashboard /></ProtectedLayout>
       </Route>
 
-      <Route path="/transaksi">
-        <ProtectedRoute>
-          <Layout>
-            <Transaksi />
-          </Layout>
-        </ProtectedRoute>
+      <Route path="/payment-link">
+        <ProtectedLayout><PaymentLink /></ProtectedLayout>
       </Route>
 
-      <Route path="/sukses">
-        <ProtectedRoute>
-          <Layout>
-            <Sukses />
-          </Layout>
-        </ProtectedRoute>
+      <Route path="/report">
+        <ProtectedLayout><Report /></ProtectedLayout>
       </Route>
 
-      <Route path="/topup">
-        <ProtectedRoute>
-          <Layout>
-            <Topup />
-          </Layout>
-        </ProtectedRoute>
-      </Route>
-
-      <Route path="/merchants">
-        <ProtectedRoute requireAdmin>
-          <Layout>
-            <Merchants />
-          </Layout>
-        </ProtectedRoute>
+      <Route path="/tools">
+        <AdminLayout><Tools /></AdminLayout>
       </Route>
 
       <Route path="/users">
-        <ProtectedRoute requireAdmin>
-          <Layout>
-            <Users />
-          </Layout>
-        </ProtectedRoute>
+        <AdminLayout><Users /></AdminLayout>
+      </Route>
+
+      <Route path="/merchant">
+        <AdminLayout><Merchant /></AdminLayout>
+      </Route>
+
+      <Route path="/merchants">
+        <AdminLayout><Merchant /></AdminLayout>
+      </Route>
+
+      <Route path="/provider">
+        <AdminLayout><Provider /></AdminLayout>
       </Route>
 
       <Route path="/settings">
-        <ProtectedRoute requireAdmin>
-          <Layout>
-            <Settings />
-          </Layout>
-        </ProtectedRoute>
+        <AdminLayout><Provider /></AdminLayout>
       </Route>
 
       <Route path="/:merchantSlug" component={PublicTopup} />

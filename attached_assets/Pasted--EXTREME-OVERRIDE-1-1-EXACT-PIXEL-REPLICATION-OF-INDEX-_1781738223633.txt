@@ -1,0 +1,68 @@
+# EXTREME OVERRIDE: 1:1 EXACT PIXEL REPLICATION OF INDEX.PHP
+
+You have completely failed to copy the UI from `index.php`. Your current UI is a generic template and is unacceptable. You ignored the HTML DOM structure and the menus inside the PHP file.
+
+You must DELETE your current generic UI components and REBUILD everything to be a 100% pixel-perfect clone of `index.php`. I have mapped out exactly what is inside `index.php`. You must implement it EXACTLY as written below.
+
+## 1. RAW CSS INJECTION (NO TAILWIND FOR LAYOUT)
+Open `index.php`. Extract the EXACT `<style>` block starting from line 13 (`body { font-family: 'Inter', ...`) to line 125 (`.dark-mode .tablecard { ... }`).
+Paste this EXACT CSS into your global stylesheet. Do not use Tailwind utility classes to recreate this. Use these exact class names: `.sidebar`, `.main-content`, `.topbar`, `.tablecard`, `.btn`, `.btn-primary`, `.badge`, `.field`, and the `body.dark-mode` rules.
+
+## 2. GLOBAL LAYOUT (SIDEBAR & TOPBAR)
+Your current sidebar is wrong. Rebuild it using `<div className="sidebar">`.
+It MUST contain exactly these menus and route to these pages:
+1. **Dashboard** -> `/dashboard` (Icon: 📊)
+2. **Payment Link** -> `/payment-link` (Icon: 🔗)
+3. **Report** -> `/report` (Icon: 📄)
+4. **Tools** -> `/tools` (Icon: 🛠️)
+5. **Users** -> `/users` (Icon: 👥)
+6. **Merchant** -> `/merchant` (Icon: 🏪)
+7. **Pengaturan Provider** -> `/provider` (Icon: ⚙️)
+8. **Logout** -> Action: `logout()` (Icon: 🚪)
+
+**Topbar:**
+Must use `<div className="topbar">`.
+Left side: `<div className="menu-toggle">☰</div>`
+Right side: A simple button `<button className="btn" onClick={toggleDarkMode}>[🌓]</button>`. The toggle must add/remove the `dark-mode` class on the `<body>` element.
+
+## 3. EXACT PAGE REPLICATION & FUNCTIONS
+Every page must be wrapped in `<div className="main-content">`. The main content box must use `<div className="tablecard">`.
+
+**A. Dashboard (`/dashboard`)**
+- EXACT Top elements: 4 summary cards (Total Transaksi, Sukses, Gagal, Saldo Golden Pay).
+- EXACT Filters: A form with Select API (Semua, Flypay), Status (Semua, MENUNGGU, SUKSES, GAGAL), Metode, Waktu (Hari ini, dll), Rentang Tanggal, and a Search input.
+- EXACT Table columns: ID/Waktu, Referensi, Merchant/Pelanggan, Metode, Nominal, Status, Aksi.
+- EXACT Action Buttons per row: "Cek" (blue), "Set Sukses" (green), "Set Gagal" (red).
+
+**B. Payment Link (`/payment-link`)**
+- EXACT Form at the top: Nominal (Rp), Username/Pelanggan, Channel (QRIS, DANA, OVO, dll), and a "Generate" button.
+- EXACT Table below it showing the generated links.
+
+**C. Report (`/report`)**
+- EXACT Filter: Start Date, End Date, and "Cari" button.
+- EXACT Table: Reference, Time, Customer, Amount, Status.
+- EXACT Button: "Export PDF" at the bottom.
+
+**D. Tools (`/tools`)**
+- EXACT 3 sections with buttons: 
+  1. "Download CSV"
+  2. "Download JSON"
+  3. "Hapus Data Reset" (Red button, requires confirmation).
+
+**E. Users (`/users`)**
+- EXACT Table: ID, Name, Email, Role, Status.
+- EXACT Form below table: "+ Tambah Admin / Operator" (Nama, Email, Password, Role).
+
+**F. Merchant (`/merchant`)**
+- EXACT Table: ID, Nama Merchant, Kode/Slug, URL Callback, Status.
+- EXACT Form 1: "+ Tambah Merchant" (Nama, Kode/Slug, URL Callback).
+- EXACT Form 2: "+ Tambah Admin untuk Merchant" (Nama, Email, Password, Merchant ID selection).
+
+**G. Pengaturan Provider (`/provider`)**
+- EXACT Form: Mode (Live/Sandbox), AppID, Secret, privateKey, Callback URL. Button: "Simpan Pengaturan".
+
+**H. Public Topup Page (`/[merchantSlug]`)**
+- The layout must mirror the login/topup page of the legacy PHP.
+- EXACT Fields: Username, Nominal (Rp), Pilih Pembayaran (QRIS, E-Wallets, Banks). Button: "Lanjutkan Pembayaran".
+
+Do not skip any menu. Do not skip any button. Use the raw CSS from the PHP file to style them so it looks identical to the legacy PHP project.

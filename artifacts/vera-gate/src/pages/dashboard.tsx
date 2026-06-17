@@ -1,229 +1,250 @@
-import React from "react";
-import {
-  useGetDashboardSummary,
-  getGetDashboardSummaryQueryKey,
-  useGetDashboardRecent,
-  getGetDashboardRecentQueryKey,
-} from "@workspace/api-client-react";
-import { formatRupiah, formatDate } from "@/lib/utils";
+import React, { useState } from "react";
+import { useListTransactions, getListTransactionsQueryKey, useCheckTransactionStatus } from "@workspace/api-client-react";
+import { useGetDashboardSummary, getGetDashboardSummaryQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
+import { formatRupiah } from "@/lib/utils";
 
-function StatusBadge({ status }: { status: string }) {
-  const cls = status.toLowerCase();
-  return <span className={`badge ${cls}`}>{status.charAt(0) + status.slice(1).toLowerCase()}</span>;
+const METODE = ["QRIS", "GoPay", "OVO", "Dana", "ShopeePay", "LinkAja", "BCA", "BRI", "BNI", "Mandiri", "DANA"];
+const DOT_CLASS: Record<string, string> = {
+  GoPay: "gopay", OVO: "ovo", Dana: "dana", ShopeePay: "shopeepay", LinkAja: "linkaja",
+  QRIS: "qris", BCA: "bank", BRI: "bank", BNI: "bank", Mandiri: "bank",
+};
+
+function formatJam(iso: string) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" }) + " " +
+      d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  } catch { return iso; }
 }
 
+function getDateRange(periode: string, startCustom: string, endCustom: string) {
+  const today = new Date();
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  if (periode === "hari") return { startDate: fmt(today), endDate: fmt(today) };
+  if (periode === "bulan") return { startDate: fmt(new Date(today.getFullYear(), today.getMonth(), 1)), endDate: fmt(today) };
+  if (periode === "tahun") return { startDate: fmt(new Date(today.getFullYear(), 0, 1)), endDate: fmt(today) };
+  if (periode === "custom") return { startDate: startCustom || undefined, endDate: endCustom || undefined };
+  return {};
+}
+
+const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
 export function Dashboard() {
-  const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary(
-    { period: "today" },
-    {
-      query: {
-        refetchInterval: 7000,
-        queryKey: getGetDashboardSummaryQueryKey({ period: "today" }),
-      },
-    }
-  );
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(25);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [periode, setPeriode] = useState("hari");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const debouncedSearch = useDebounce(search, 450);
+  const queryClient = useQueryClient();
 
-  const { data: recent, isLoading: isLoadingRecent } = useGetDashboardRecent(
-    { limit: 10 },
-    {
-      query: {
-        refetchInterval: 7000,
-        queryKey: getGetDashboardRecentQueryKey({ limit: 10 }),
-      },
-    }
-  );
+  const dateRange = getDateRange(periode, startDate, endDate);
 
-  const suksesCount = summary?.byStatus?.find((s) => s.status === "SUKSES")?.count || 0;
-  const successRate =
-    summary && summary.todayCount > 0
-      ? Math.round((suksesCount / summary.todayCount) * 100)
-      : 0;
+  const queryParams: any = {
+    page,
+    limit: perPage,
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(status !== "all" ? { status } : {}),
+    ...dateRange,
+  };
 
-  const stats = [
-    {
-      label: "Volume Hari Ini",
-      value: summary ? formatRupiah(summary.todayAmount) : "Rp 0",
-      sub: `${summary?.todayCount || 0} transaksi`,
-      ic: "💰",
-      icBg: "rgba(44,92,146,.12)",
-    },
-    {
-      label: "Total Volume",
-      value: summary ? formatRupiah(summary.totalAmount) : "Rp 0",
-      sub: `${summary?.totalTransactions || 0} total`,
-      ic: "📊",
-      icBg: "rgba(44,92,146,.12)",
-    },
-    {
-      label: "Tingkat Sukses",
-      value: `${successRate}%`,
-      sub: "Hari ini",
-      ic: "✅",
-      icBg: "rgba(30,126,76,.12)",
-    },
-    {
-      label: "Merchant Aktif",
-      value: String(summary?.topMerchants?.length || 0),
-      sub: "Dengan transaksi",
-      ic: "🏪",
-      icBg: "rgba(44,92,146,.12)",
-    },
-  ];
+  const { data, isLoading } = useListTransactions(queryParams, {
+    query: { queryKey: getListTransactionsQueryKey(queryParams), refetchInterval: 10000 },
+  });
+
+  const { data: summary } = useGetDashboardSummary({ period: "today" }, {
+    query: { queryKey: getGetDashboardSummaryQueryKey({ period: "today" }), refetchInterval: 10000 },
+  });
+
+  const checkMutation = useCheckTransactionStatus();
+
+  const rows = data?.data ?? [];
+  const total = data?.total ?? 0;
+  const pages = Math.max(1, Math.ceil(total / perPage));
+
+  const suksesCount = summary?.byStatus?.find(s => s.status === "SUKSES")?.count ?? 0;
+  const menungguCount = summary?.byStatus?.find(s => s.status === "MENUNGGU")?.count ?? 0;
+  const gagalCount = summary?.byStatus?.find(s => s.status === "GAGAL")?.count ?? 0;
+  const suksesAmt = summary?.todayAmount ?? 0;
+
+  const handlePeriode = (v: string) => {
+    setPeriode(v);
+    setPage(1);
+    if (v !== "custom") { setStartDate(""); setEndDate(""); }
+  };
+
+  const handleSearch = (v: string) => { setSearch(v); setPage(1); };
+  const handleStatus = (v: string) => { setStatus(v); setPage(1); };
+  const handlePerPage = (v: number) => { setPerPage(v); setPage(1); };
+
+  function pageWindow(cur: number, last: number): (number | null)[] {
+    const keep = new Set<number>();
+    keep.add(1); keep.add(last);
+    for (let p = cur - 2; p <= cur + 2; p++) if (p >= 1 && p <= last) keep.add(p);
+    const sorted = Array.from(keep).sort((a, b) => a - b);
+    const out: (number | null)[] = [];
+    let prev = 0;
+    for (const p of sorted) { if (prev && p - prev > 1) out.push(null); out.push(p); prev = p; }
+    return out;
+  }
+
+  const loItem = total ? (page - 1) * perPage + 1 : 0;
+  const hiItem = Math.min(page * perPage, total);
 
   return (
     <>
-      {/* Live indicator */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-        <span style={{
-          width: 8, height: 8, borderRadius: "50%", background: "var(--green)",
-          display: "inline-block", boxShadow: "0 0 0 3px var(--green-bg)"
-        }} />
-        <span className="muted" style={{ fontSize: 12 }}>Auto-refresh setiap 7 detik</span>
-      </div>
+      <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.5px", marginBottom: 12 }}>Transactions</div>
 
-      {/* Summary cards */}
       <div className="summary">
-        {stats.map(({ label, value, sub, ic, icBg }, i) => (
-          <div key={i} className="sc">
-            <div className="l">
-              <div className="ic" style={{ background: icBg }}>{ic}</div>
-              {label}
-            </div>
-            {isLoadingSummary ? (
-              <div style={{ height: 28, marginTop: 9, background: "var(--line)", borderRadius: 8, animation: "pulse 1.5s ease-in-out infinite" }} />
-            ) : (
-              <>
-                <div className="v mono">{value}</div>
-                <div className="s">{sub}</div>
-              </>
-            )}
-          </div>
-        ))}
+        <div className="sc">
+          <div className="l"><span className="ic" style={{ background: "var(--green-bg)" }}>✓</span>Total Sukses</div>
+          <div className="v">{suksesCount}</div>
+        </div>
+        <div className="sc">
+          <div className="l"><span className="ic" style={{ background: "var(--green-bg)" }}>₿</span>Nominal Sukses</div>
+          <div className="v mono" style={{ fontSize: 19 }}>{formatRupiah(suksesAmt)}</div>
+        </div>
+        <div className="sc">
+          <div className="l"><span className="ic" style={{ background: "var(--amber-bg)" }}>⏳</span>Menunggu</div>
+          <div className="v">{menungguCount}</div>
+        </div>
+        <div className="sc">
+          <div className="l"><span className="ic" style={{ background: "var(--red-bg)" }}>✕</span>Gagal</div>
+          <div className="v">{gagalCount}</div>
+        </div>
       </div>
 
-      {/* Recent transactions + status breakdown */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 14 }}>
-        {/* Recent table */}
-        <div className="tablecard">
-          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)" }}>
-            <strong style={{ fontSize: 14 }}>Transaksi Terbaru</strong>
-            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Aktivitas terkini dari semua merchant</div>
-          </div>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Ref No</th>
-                  <th>Customer / Merchant</th>
-                  <th style={{ textAlign: "right" }}>Nominal</th>
-                  <th style={{ textAlign: "center" }}>Status</th>
-                  <th style={{ textAlign: "right" }}>Waktu</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isLoadingRecent ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i}>
-                      <td colSpan={5} className="empty" style={{ padding: "12px 16px" }}>
-                        <div style={{ height: 14, background: "var(--line)", borderRadius: 6, animation: "pulse 1.5s ease-in-out infinite" }} />
-                      </td>
-                    </tr>
-                  ))
-                ) : recent?.data && recent.data.length > 0 ? (
-                  recent.data.map((tx) => (
-                    <tr key={tx.id}>
-                      <td className="mono" style={{ fontSize: 12 }}>{tx.ref}</td>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{tx.customerId || "-"}</div>
-                        <div className="muted" style={{ fontSize: 11 }}>{tx.merchantName || "-"}</div>
-                      </td>
-                      <td className="amt mono" style={{ textAlign: "right" }}>{formatRupiah(tx.amount)}</td>
-                      <td style={{ textAlign: "center" }}>
-                        <StatusBadge status={tx.status} />
-                      </td>
-                      <td className="muted mono" style={{ textAlign: "right", fontSize: 12 }}>
-                        {new Date(tx.createdAt).toLocaleTimeString("id-ID")}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="empty">Belum ada transaksi.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+      <form className="filters" onSubmit={e => e.preventDefault()}>
+        <div className="fg" style={{ flex: 1, minWidth: 240 }}>
+          <label>Cari (Ref No / Username / Metode)</label>
+          <input
+            id="f-search"
+            value={search}
+            onChange={e => handleSearch(e.target.value)}
+            placeholder="ketik untuk mencari semua data..."
+            autoComplete="off"
+          />
         </div>
+        <div className="fg">
+          <label>Periode</label>
+          <select value={periode} onChange={e => handlePeriode(e.target.value)}>
+            <option value="semua">Semua</option>
+            <option value="hari">Hari ini</option>
+            <option value="bulan">Bulan ini</option>
+            <option value="tahun">Tahun ini</option>
+            <option value="custom">Rentang custom</option>
+          </select>
+        </div>
+        <div className="fg">
+          <label>Tgl Mulai</label>
+          <input type="date" value={startDate} onChange={e => { setStartDate(e.target.value); setPage(1); }} />
+        </div>
+        <div className="fg">
+          <label>Tgl Akhir</label>
+          <input type="date" value={endDate} onChange={e => { setEndDate(e.target.value); setPage(1); }} />
+        </div>
+        <div className="fg">
+          <label>Status</label>
+          <select value={status} onChange={e => handleStatus(e.target.value)}>
+            <option value="all">Semua</option>
+            <option value="SUKSES">Sukses</option>
+            <option value="MENUNGGU">Menunggu</option>
+            <option value="GAGAL">Gagal</option>
+            <option value="KEDALUWARSA">Kedaluwarsa</option>
+          </select>
+        </div>
+        <div className="fg">
+          <label>Per halaman</label>
+          <select value={perPage} onChange={e => handlePerPage(Number(e.target.value))}>
+            {PER_PAGE_OPTIONS.map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <button className="btn sm" type="submit">Terapkan</button>
+        <button className="btn sm alt" type="button" onClick={() => {
+          setSearch(""); setStatus("all"); setPeriode("hari"); setStartDate(""); setEndDate(""); setPage(1);
+        }}>Reset</button>
+      </form>
 
-        {/* Status breakdown */}
-        <div className="tablecard">
-          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)" }}>
-            <strong style={{ fontSize: 14 }}>Ringkasan Status</strong>
-            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Semua waktu</div>
-          </div>
-          <div style={{ padding: "16px" }}>
-            {isLoadingSummary ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} style={{ height: 40, marginBottom: 12, background: "var(--line)", borderRadius: 8, animation: "pulse 1.5s ease-in-out infinite" }} />
-              ))
-            ) : summary?.byStatus ? (
-              summary.byStatus.map((s) => {
-                const statusCls: Record<string, string> = {
-                  SUKSES: "sukses", MENUNGGU: "menunggu", GAGAL: "gagal", KEDALUWARSA: "kedaluwarsa"
-                };
-                const barColors: Record<string, string> = {
-                  SUKSES: "var(--green)", MENUNGGU: "var(--amber)", GAGAL: "var(--red)", KEDALUWARSA: "var(--muted)"
-                };
-                const pct = summary.totalTransactions > 0
-                  ? Math.round((s.count / summary.totalTransactions) * 100)
-                  : 0;
+      <div className="tablecard">
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Username</th>
+                <th>Nama Pengirim</th>
+                <th>Metode Bayar</th>
+                <th>QRIS</th>
+                <th>Nominal</th>
+                <th>Status</th>
+                <th>Ref No</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={9}><div className="empty">Memuat data...</div></td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={9}><div className="empty">{search ? `Tidak ada hasil untuk "${search}".` : "Belum ada transaksi untuk filter ini."}</div></td></tr>
+              ) : rows.map(tx => {
+                const dotCls = DOT_CLASS[tx.method ?? ""] ?? "bank";
+                const statusCls = (tx.status ?? "").toLowerCase();
                 return (
-                  <div key={s.status} style={{ marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                      <span className={`badge ${statusCls[s.status] || "kedaluwarsa"}`}>{s.status}</span>
-                      <span className="mono" style={{ fontWeight: 700, fontSize: 13 }}>{s.count}</span>
-                    </div>
-                    <div style={{ height: 5, background: "var(--line)", borderRadius: 4, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pct}%`, background: barColors[s.status] || "var(--muted)", borderRadius: 4, transition: "width .4s" }} />
-                    </div>
-                    <div className="muted mono" style={{ fontSize: 11, textAlign: "right", marginTop: 3 }}>{formatRupiah(s.amount)}</div>
-                  </div>
+                  <tr key={tx.id}>
+                    <td className="mono muted">{formatJam(tx.createdAt)}</td>
+                    <td>
+                      <span className="uname">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                          <circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
+                        </svg>
+                        {tx.customerId ?? "—"}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{tx.notes ?? "—"}</td>
+                    <td>
+                      {tx.method && tx.method !== "-" ? (
+                        <span className="met"><span className={`d ${dotCls}`}></span>{tx.method}</span>
+                      ) : <span className="muted">—</span>}
+                    </td>
+                    <td className="muted" style={{ fontWeight: 600 }}>
+                      {tx.qrCode ? "Flypay" : "Manual"}
+                    </td>
+                    <td className="amt">{formatRupiah(tx.amount)}</td>
+                    <td>
+                      <span className={`badge ${statusCls}`}>{(tx.status ?? "").toUpperCase()}</span>
+                    </td>
+                    <td className="mono muted">{tx.ref}</td>
+                    <td className="act">
+                      <button className="abtn" onClick={() => {
+                        checkMutation.mutate({ ref: tx.ref }, {
+                          onSuccess: () => queryClient.invalidateQueries({ queryKey: getListTransactionsQueryKey(queryParams) }),
+                        });
+                      }}>Cek</button>
+                    </td>
+                  </tr>
                 );
-              })
-            ) : null}
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="pager">
+          <div className="info">Menampilkan {loItem}–{hiItem} dari {total} transaksi</div>
+          <div className="nums">
+            <button className={`pg${page <= 1 ? " dis" : ""}`} onClick={() => page > 1 && setPage(page - 1)}>‹</button>
+            {pageWindow(page, pages).map((p, i) =>
+              p === null
+                ? <span key={`dot-${i}`} className="pg dots">…</span>
+                : <button key={p} className={`pg${p === page ? " on" : ""}`} onClick={() => setPage(p)}>{p}</button>
+            )}
+            <button className={`pg${page >= pages ? " dis" : ""}`} onClick={() => page < pages && setPage(page + 1)}>›</button>
           </div>
         </div>
       </div>
-
-      {/* Top Merchants */}
-      {summary?.topMerchants && summary.topMerchants.length > 0 && (
-        <div className="tablecard">
-          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)" }}>
-            <strong style={{ fontSize: 14 }}>Top Merchant Hari Ini</strong>
-          </div>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Merchant</th>
-                  <th style={{ textAlign: "right" }}>Transaksi</th>
-                  <th style={{ textAlign: "right" }}>Volume</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.topMerchants.map((m: any) => (
-                  <tr key={m.merchantId}>
-                    <td><span className="uname">{m.merchantName || `ID: ${m.merchantId}`}</span></td>
-                    <td className="mono" style={{ textAlign: "right", fontWeight: 700 }}>{m.count}</td>
-                    <td className="amt mono" style={{ textAlign: "right" }}>{formatRupiah(m.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </>
   );
 }
