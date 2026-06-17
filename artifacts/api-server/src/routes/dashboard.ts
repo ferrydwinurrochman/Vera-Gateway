@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, transactionsTable, merchantsTable } from "@workspace/db";
-import { eq, sql, gte, desc } from "drizzle-orm";
+import { eq, sql, gte, desc, inArray } from "drizzle-orm";
 import { GetDashboardSummaryQueryParams, GetDashboardRecentQueryParams } from "@workspace/api-zod";
 
 const router = Router();
@@ -92,7 +92,7 @@ router.get("/summary", async (req, res) => {
   const merchants = merchantIds.length > 0
     ? await db.select({ id: merchantsTable.id, name: merchantsTable.name })
         .from(merchantsTable)
-        .where(sql`${merchantsTable.id} = ANY(${merchantIds})`)
+        .where(inArray(merchantsTable.id, merchantIds))
     : [];
 
   const merchantMap = new Map(merchants.map((m) => [m.id, m.name]));

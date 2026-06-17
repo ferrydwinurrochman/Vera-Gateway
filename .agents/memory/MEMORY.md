@@ -1,0 +1,1 @@
+- [Dashboard SQL fix](dashboard-sql.md) — use `inArray()` not raw `ANY()` syntax for merchantIds lookup in dashboard summary route.
