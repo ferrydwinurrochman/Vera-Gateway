@@ -37,4 +37,4 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.shared]
-MYSQL_URL = "mysql://u225124009_Veragate_db:Veragate2026DB@153.92.15.71:3306/u225124009_Veragate_db"
+MYSQL_URL = "mysql://u225124009_veragate:Veragate2026DB@153.92.15.71:3306/u225124009_veragate"
