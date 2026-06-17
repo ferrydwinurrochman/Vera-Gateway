@@ -1,15 +1,15 @@
-import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
+import { mysqlTable, serial, varchar, int, timestamp } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const settingsTable = pgTable("settings", {
+export const settingsTable = mysqlTable("settings", {
   id: serial("id").primaryKey(),
-  flypayAppId: text("flypay_app_id").notNull().default("4183"),
-  flypaySecret: text("flypay_secret").notNull().default(""),
-  flypayMode: text("flypay_mode").notNull().default("sandbox"),
-  callbackBaseUrl: text("callback_base_url").notNull().default(""),
-  cooldownMinutes: integer("cooldown_minutes").notNull().default(20),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  flypayAppId: varchar("flypay_app_id", { length: 100 }).notNull().default("4183"),
+  flypaySecret: varchar("flypay_secret", { length: 255 }).notNull().default(""),
+  flypayMode: varchar("flypay_mode", { length: 20 }).notNull().default("sandbox"),
+  callbackBaseUrl: varchar("callback_base_url", { length: 500 }).notNull().default(""),
+  cooldownMinutes: int("cooldown_minutes").notNull().default(20),
+  updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
 });
 
 export const insertSettingsSchema = createInsertSchema(settingsTable).omit({ id: true, updatedAt: true });
