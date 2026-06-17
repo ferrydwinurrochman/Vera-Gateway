@@ -46,8 +46,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const logoutMutation = useLogout();
 
   const handleLogout = () => {
-    clearAuth();
-    logoutMutation.mutate(undefined);
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => clearAuth(),
+      onError: () => clearAuth(),
+    });
   };
 
   const pageTitle = pageTitles[location] || "Dashboard";

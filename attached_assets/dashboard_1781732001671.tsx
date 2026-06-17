@@ -6,7 +6,7 @@ import {
   getGetDashboardRecentQueryKey,
 } from "@workspace/api-client-react";
 import { formatRupiah, formatDate } from "@/lib/utils";
-import { Wallet, Activity, CheckCircle2, Store } from "lucide-react";
+import { Wallet, Activity, CheckCircle2, Store, Clock, XCircle, AlertCircle } from "lucide-react";
 
 function formatStatus(status: string) {
   switch (status) {
@@ -101,7 +101,7 @@ export function Dashboard() {
               </p>
               <div
                 className="p-2 rounded-lg"
-                style={{ backgroundColor: "rgba(59,130,246,0.1)" }}
+                style={{ backgroundColor: "rgba(0,102,204,0.1)" }}
               >
                 <Icon className="w-4 h-4" style={{ color: "var(--primary)" }} />
               </div>
@@ -147,18 +147,51 @@ export function Dashboard() {
             <table className="w-full text-sm">
               <thead>
                 <tr>
-                  {["Ref No", "Customer / Merchant", "Nominal", "Status", "Waktu"].map((h, i) => (
-                    <th
-                      key={h}
-                      className={`py-3 text-xs font-bold uppercase tracking-wider ${i === 0 ? "text-left px-5" : i === 2 ? "text-right px-4" : i === 3 ? "text-center px-4" : i === 4 ? "text-right px-5" : "text-left px-4"}`}
-                      style={{
-                        color: "var(--muted-foreground)",
-                        borderBottom: "1px solid var(--border)",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  <th
+                    className="text-left py-3 px-5 text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      color: "var(--muted-foreground)",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
+                    Ref No
+                  </th>
+                  <th
+                    className="text-left py-3 px-4 text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      color: "var(--muted-foreground)",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
+                    Customer / Merchant
+                  </th>
+                  <th
+                    className="text-right py-3 px-4 text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      color: "var(--muted-foreground)",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
+                    Nominal
+                  </th>
+                  <th
+                    className="text-center py-3 px-4 text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      color: "var(--muted-foreground)",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
+                    Status
+                  </th>
+                  <th
+                    className="text-right py-3 px-5 text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      color: "var(--muted-foreground)",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
+                    Waktu
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -178,9 +211,10 @@ export function Dashboard() {
                     <tr
                       key={tx.id}
                       className="transition-colors"
-                      style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+                      style={{ borderBottom: "1px solid rgba(42,47,62,0.6)" }}
                       onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.03)")
+                        ((e.currentTarget as HTMLElement).style.backgroundColor =
+                          "rgba(42,47,62,0.3)")
                       }
                       onMouseLeave={(e) =>
                         ((e.currentTarget as HTMLElement).style.backgroundColor = "transparent")
@@ -250,9 +284,15 @@ export function Dashboard() {
               summary.byStatus.map((s) => {
                 const colors: Record<string, string> = {
                   SUKSES: "#4ade80",
-                  MENUNGGU: "#fbbf24",
+                  MENUNGGU: "#facc15",
                   GAGAL: "#f87171",
                   KEDALUWARSA: "#9ca3af",
+                };
+                const bgColors: Record<string, string> = {
+                  SUKSES: "rgba(74,222,128,0.15)",
+                  MENUNGGU: "rgba(250,204,21,0.15)",
+                  GAGAL: "rgba(248,113,113,0.15)",
+                  KEDALUWARSA: "rgba(156,163,175,0.15)",
                 };
                 const pct = summary.totalTransactions > 0
                   ? Math.round((s.count / summary.totalTransactions) * 100)

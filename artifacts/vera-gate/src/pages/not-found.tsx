@@ -1,21 +1,23 @@
-import { Card, CardContent } from "@/components/ui/card";
+import React from "react";
 import { AlertCircle } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">404 Page Not Found</h1>
-          </div>
-
-          <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
-          </p>
-        </CardContent>
-      </Card>
+    <div
+      className="min-h-screen w-full flex items-center justify-center p-4"
+      style={{ backgroundColor: "var(--background)" }}
+    >
+      <div className="vera-card w-full max-w-md p-8 text-center">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <AlertCircle className="h-8 w-8" style={{ color: "#f87171" }} />
+          <h1 className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>
+            404 — Halaman Tidak Ditemukan
+          </h1>
+        </div>
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
+          Halaman yang Anda cari tidak ada atau telah dipindahkan.
+        </p>
+      </div>
     </div>
   );
 }
