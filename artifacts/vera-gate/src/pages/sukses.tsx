@@ -4,7 +4,7 @@ import {
   getListSuksesTransactionsQueryKey,
 } from "@workspace/api-client-react";
 import { formatRupiah, formatDate } from "@/lib/utils";
-import { CheckCircle2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 export function Sukses() {
   const [page, setPage] = useState(1);
@@ -15,117 +15,68 @@ export function Sukses() {
     query: { queryKey: getListSuksesTransactionsQueryKey(queryParams) },
   });
 
+  const totalPages = data ? Math.ceil(data.total / 15) : 1;
+
   return (
-    <div className="space-y-5">
+    <>
       {/* Header action */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="w-5 h-5" style={{ color: "#4ade80" }} />
-          <span className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-            Hanya menampilkan transaksi dengan status SUKSES
-          </span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", display: "inline-block" }} />
+          <span className="muted" style={{ fontSize: 13 }}>Hanya menampilkan transaksi dengan status SUKSES</span>
         </div>
         <button
-          className="btn-alt"
+          className="btn alt sm"
           onClick={() => refetch()}
           disabled={isLoading}
+          style={{ display: "inline-flex", alignItems: "center", gap: 7 }}
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+          <RefreshCw style={{ width: 14, height: 14 }} className={isLoading ? "animate-spin" : ""} />
           Refresh
         </button>
       </div>
 
       {/* Table */}
-      <div
-        className="vera-card overflow-hidden"
-        style={{ borderColor: "rgba(74,222,128,0.2)" }}
-      >
-        <div className="h-1 w-full" style={{ backgroundColor: "#22c55e" }} />
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+      <div className="tablecard">
+        <div style={{ height: 3, background: "var(--green)" }} />
+        <div className="table-scroll">
+          <table>
             <thead>
               <tr>
-                {["Ref No", "Waktu Selesai", "Customer / Merchant", "Nominal", "Status"].map(
-                  (h, i) => (
-                    <th
-                      key={h}
-                      className={`py-3 px-4 text-xs font-bold uppercase tracking-wider ${
-                        i === 3 ? "text-right" : i === 4 ? "text-center" : "text-left"
-                      }`}
-                      style={{
-                        color: "var(--muted-foreground)",
-                        borderBottom: "1px solid var(--border)",
-                        backgroundColor: "rgba(42,47,62,0.3)",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
+                <th>Ref No</th>
+                <th>Waktu Selesai</th>
+                <th>Customer / Merchant</th>
+                <th style={{ textAlign: "right" }}>Nominal</th>
+                <th style={{ textAlign: "center" }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid rgba(42,47,62,0.5)" }}>
-                    <td colSpan={5} className="py-4 text-center">
-                      <div
-                        className="h-4 rounded animate-pulse mx-auto"
-                        style={{ backgroundColor: "var(--muted)", width: "70%" }}
-                      />
+                  <tr key={i}>
+                    <td colSpan={5} className="empty" style={{ padding: "12px 16px" }}>
+                      <div style={{ height: 14, background: "var(--line)", borderRadius: 6, animation: "pulse 1.5s ease-in-out infinite" }} />
                     </td>
                   </tr>
                 ))
               ) : data?.data && data.data.length > 0 ? (
                 data.data.map((tx) => (
-                  <tr
-                    key={tx.id}
-                    className="transition-colors"
-                    style={{ borderBottom: "1px solid rgba(42,47,62,0.5)" }}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.backgroundColor =
-                        "rgba(42,47,62,0.3)")
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLElement).style.backgroundColor = "transparent")
-                    }
-                  >
-                    <td className="py-3 px-4 font-mono text-xs font-medium">{tx.ref}</td>
-                    <td
-                      className="py-3 px-4 text-xs"
-                      style={{ color: "var(--muted-foreground)" }}
-                    >
-                      {formatDate(tx.updatedAt || tx.createdAt)}
+                  <tr key={tx.id}>
+                    <td className="mono" style={{ fontSize: 12 }}>{tx.ref}</td>
+                    <td className="muted" style={{ fontSize: 12 }}>{formatDate(tx.updatedAt || tx.createdAt)}</td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{tx.customerId || "-"}</div>
+                      <div className="muted" style={{ fontSize: 11 }}>{tx.merchantName || "-"}</div>
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium">{tx.customerId || "-"}</div>
-                      <div
-                        className="text-xs"
-                        style={{ color: "var(--muted-foreground)" }}
-                      >
-                        {tx.merchantName || "-"}
-                      </div>
-                    </td>
-                    <td
-                      className="py-3 px-4 text-right font-mono font-bold"
-                      style={{ color: "#4ade80" }}
-                    >
-                      {formatRupiah(tx.amount)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="status-sukses">Sukses</span>
+                    <td className="amt mono" style={{ textAlign: "right", color: "var(--green)" }}>{formatRupiah(tx.amount)}</td>
+                    <td style={{ textAlign: "center" }}>
+                      <span className="badge sukses">Sukses</span>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="py-12 text-center"
-                    style={{ color: "var(--muted-foreground)" }}
-                  >
-                    Belum ada transaksi sukses.
-                  </td>
+                  <td colSpan={5} className="empty">Belum ada transaksi sukses.</td>
                 </tr>
               )}
             </tbody>
@@ -133,35 +84,28 @@ export function Sukses() {
         </div>
 
         {data && data.total > 0 && (
-          <div
-            className="px-4 py-3 flex items-center justify-between"
-            style={{ borderTop: "1px solid var(--border)" }}
-          >
-            <span className="text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>
-              {(page - 1) * 15 + 1}–{Math.min(page * 15, data.total)} dari {data.total}
-            </span>
-            <div className="flex items-center gap-2">
+          <div className="pager">
+            <span className="info">{(page - 1) * 15 + 1}–{Math.min(page * 15, data.total)} dari {data.total}</span>
+            <div className="nums">
               <button
-                className="btn-alt text-xs px-3 py-1.5"
+                className={`pg${page === 1 ? " dis" : ""}`}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1 || isLoading}
               >
-                Sebelumnya
+                ‹
               </button>
-              <span className="text-sm font-mono px-2" style={{ color: "#4ade80" }}>
-                {page}
-              </span>
+              <button className="pg on">{page}</button>
               <button
-                className="btn-alt text-xs px-3 py-1.5"
+                className={`pg${page * 15 >= data.total ? " dis" : ""}`}
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page * 15 >= data.total || isLoading}
               >
-                Berikutnya
+                ›
               </button>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

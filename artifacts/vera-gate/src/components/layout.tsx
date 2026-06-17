@@ -12,8 +12,8 @@ import {
   Cog,
   LogOut,
   Menu,
-  X,
-  ChevronRight,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const navItems = [
@@ -26,7 +26,7 @@ const navItems = [
 const adminItems = [
   { href: "/merchants", label: "Merchant", icon: Store },
   { href: "/users", label: "User Management", icon: Users },
-  { href: "/settings", label: "Pengaturan Provider", icon: Cog },
+  { href: "/settings", label: "Pengaturan", icon: Cog },
 ];
 
 const pageTitles: Record<string, string> = {
@@ -40,251 +40,125 @@ const pageTitles: Record<string, string> = {
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, logout: clearAuth } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sideOpen, setSideOpen] = useState(false);
+  const [dark, setDark] = useState(() => document.body.classList.contains("dark"));
   const logoutMutation = useLogout();
 
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
-      onSuccess: () => clearAuth(),
-      onError: () => clearAuth(),
+      onSuccess: () => { clearAuth(); setLocation("/login"); },
+      onError: () => { clearAuth(); setLocation("/login"); },
     });
+  };
+
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    if (next) {
+      document.body.classList.add("dark");
+      localStorage.setItem("vg-theme", "dark");
+    } else {
+      document.body.classList.remove("dark");
+      localStorage.setItem("vg-theme", "light");
+    }
   };
 
   const pageTitle = pageTitles[location] || "Dashboard";
 
   function NavLink({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType }) {
-    const isActive = location === href || (href !== "/dashboard" && location.startsWith(href + "/"));
+    const isActive = location === href;
     return (
-      <Link href={href}>
-        <span
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 cursor-pointer text-sm font-medium group"
-          style={{
-            background: isActive
-              ? "linear-gradient(135deg, rgba(59,130,246,0.25) 0%, rgba(29,78,216,0.2) 100%)"
-              : "transparent",
-            color: isActive ? "#93c5fd" : "rgba(232,237,243,0.5)",
-            borderLeft: isActive ? "2px solid rgba(96,165,250,0.8)" : "2px solid transparent",
-          }}
-          onMouseEnter={(e) => {
-            if (!isActive) {
-              (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)";
-              (e.currentTarget as HTMLElement).style.color = "rgba(232,237,243,0.8)";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isActive) {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color = "rgba(232,237,243,0.5)";
-            }
-          }}
-        >
-          <Icon className="w-4 h-4 flex-shrink-0" />
-          {sidebarOpen && <span className="flex-1">{label}</span>}
-          {sidebarOpen && isActive && <ChevronRight className="w-3.5 h-3.5 opacity-60" />}
+      <Link href={href} onClick={() => setSideOpen(false)}>
+        <span className={`nav${isActive ? " on" : ""}`}>
+          <Icon />
+          {label}
         </span>
       </Link>
     );
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="shell">
+      {/* Backdrop for mobile */}
+      <div
+        className={`side-backdrop${sideOpen ? " show" : ""}`}
+        onClick={() => setSideOpen(false)}
+      />
+
       {/* Sidebar */}
-      <aside
-        className="fixed left-0 top-0 z-40 h-screen flex flex-col transition-all duration-300"
-        style={{
-          width: sidebarOpen ? "260px" : "68px",
-          background: "linear-gradient(180deg, #080f1d 0%, #0a1628 50%, #0b1a30 100%)",
-          borderRight: "1px solid rgba(255,255,255,0.07)",
-          boxShadow: "4px 0 24px rgba(0,0,0,0.4)",
-        }}
-      >
-        {/* Logo area */}
-        <div
-          className="flex items-center px-4 py-5"
-          style={{
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-            minHeight: "68px",
-            gap: sidebarOpen ? "0" : "0",
-            justifyContent: sidebarOpen ? "space-between" : "center",
-          }}
-        >
-          {sidebarOpen && (
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{
-                  background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                  boxShadow: "0 4px 12px rgba(59,130,246,0.4)",
-                }}
-              >
-                <span className="text-white font-black text-xs">VG</span>
-              </div>
-              <div>
-                <h1 className="text-sm font-bold tracking-wide" style={{ color: "#e8edf3" }}>
-                  VERA GATE
-                </h1>
-                <p className="text-xs" style={{ color: "rgba(232,237,243,0.35)", letterSpacing: "0.1em" }}>
-                  PAYMENT GATEWAY
-                </p>
-              </div>
-            </div>
-          )}
-          {!sidebarOpen && (
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)",
-                boxShadow: "0 4px 12px rgba(59,130,246,0.4)",
-              }}
-            >
-              <span className="text-white font-black text-xs">VG</span>
-            </div>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-lg transition-colors flex-shrink-0"
-            style={{ color: "rgba(232,237,243,0.4)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.color = "rgba(232,237,243,0.8)";
-              (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.06)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.color = "rgba(232,237,243,0.4)";
-              (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-            }}
-          >
-            {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </button>
+      <aside className={`side${sideOpen ? " open" : ""}`}>
+        {/* Brand */}
+        <div className="brand" style={{ padding: "6px 8px 14px" }}>
+          <div className="chip">
+            <span>VG</span>
+          </div>
+          <div className="wm">
+            VERA GATE
+            <small>PAYMENT GATEWAY</small>
+          </div>
         </div>
 
         {/* User badge */}
-        {sidebarOpen && (
-          <div
-            className="mx-3 my-3 px-3 py-3 rounded-xl"
-            style={{
-              background: "rgba(59,130,246,0.08)",
-              border: "1px solid rgba(59,130,246,0.15)",
-            }}
-          >
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-xs font-bold"
-                style={{
-                  background: "linear-gradient(135deg, rgba(59,130,246,0.4) 0%, rgba(29,78,216,0.4) 100%)",
-                  color: "#93c5fd",
-                  border: "1px solid rgba(59,130,246,0.3)",
-                }}
-              >
-                {user?.username?.charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate" style={{ color: "#e8edf3" }}>
-                  {user?.username}
-                </p>
-                <p className="text-xs capitalize" style={{ color: "rgba(232,237,243,0.45)" }}>
-                  {user?.role} · Jakarta
-                </p>
-              </div>
-            </div>
-          </div>
+        <div className="merchant">
+          <div className="l">Pengguna aktif</div>
+          <div className="n">{user?.username}</div>
+        </div>
+
+        {/* Main nav */}
+        <div className="grp">Menu</div>
+        {navItems.map((item) => (
+          <NavLink key={item.href} {...item} />
+        ))}
+
+        {/* Admin nav */}
+        {user?.role === "admin" && (
+          <>
+            <div className="grp">Admin</div>
+            {adminItems.map((item) => (
+              <NavLink key={item.href} {...item} />
+            ))}
+          </>
         )}
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-          {navItems.map((item) => (
-            <NavLink key={item.href} {...item} />
-          ))}
-
-          {user?.role === "admin" && (
-            <>
-              {sidebarOpen && (
-                <div
-                  className="px-3 pt-5 pb-2 text-xs font-bold uppercase tracking-widest"
-                  style={{ color: "rgba(232,237,243,0.25)" }}
-                >
-                  Admin
-                </div>
-              )}
-              {!sidebarOpen && <div className="my-2 mx-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }} />}
-              {adminItems.map((item) => (
-                <NavLink key={item.href} {...item} />
-              ))}
-            </>
-          )}
-        </nav>
-
-        {/* Footer / Logout */}
-        <div className="p-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        {/* Logout at bottom */}
+        <div style={{ marginTop: "auto", paddingTop: "12px", borderTop: "1px solid var(--line)" }}>
           <button
+            className="nav"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium"
-            style={{
-              color: "rgba(248,113,113,0.7)",
-              background: "transparent",
-              justifyContent: sidebarOpen ? "flex-start" : "center",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "rgba(239,68,68,0.08)";
-              (e.currentTarget as HTMLElement).style.color = "#f87171";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
-              (e.currentTarget as HTMLElement).style.color = "rgba(248,113,113,0.7)";
-            }}
+            style={{ width: "100%", color: "var(--red)", border: "none", background: "none" }}
           >
-            <LogOut className="w-4 h-4 flex-shrink-0" />
-            {sidebarOpen && <span>Keluar</span>}
+            <LogOut style={{ width: 18, height: 18 }} />
+            Keluar
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main
-        className="flex-1 flex flex-col transition-all duration-300 min-h-screen"
-        style={{ marginLeft: sidebarOpen ? "260px" : "68px" }}
-      >
+      {/* Main area */}
+      <div className="main">
         {/* Topbar */}
-        <header
-          className="sticky top-0 z-30 px-6 flex items-center justify-between"
-          style={{
-            height: "68px",
-            background: "rgba(13,27,42,0.7)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.2)",
-          }}
-        >
-          <div className="flex items-center gap-3">
-            <div>
-              <h2 className="text-base font-bold leading-none" style={{ color: "#e8edf3" }}>
-                {pageTitle}
-              </h2>
-              <p className="text-xs mt-0.5" style={{ color: "rgba(232,237,243,0.35)" }}>
-                Vera Gate · Payment Gateway
-              </p>
-            </div>
+        <div className="topbar">
+          <div className="l">
+            <button className="hb" onClick={() => setSideOpen(!sideOpen)}>
+              <Menu style={{ width: 22, height: 22 }} />
+            </button>
+            <span>{pageTitle}</span>
           </div>
-
-          <div className="flex items-center gap-3">
-            <span
-              className="px-3 py-1 text-xs font-bold rounded-full"
-              style={{
-                background: "linear-gradient(135deg, rgba(59,130,246,0.2) 0%, rgba(29,78,216,0.2) 100%)",
-                color: "#93c5fd",
-                border: "1px solid rgba(59,130,246,0.3)",
-              }}
-            >
-              {user?.role?.toUpperCase()}
-            </span>
+          <div className="r">
+            <span className="pill">{user?.role?.toUpperCase()}</span>
+            <span className="ava">{user?.username?.charAt(0).toUpperCase()}</span>
+            <button className="tg" onClick={toggleDark} style={{ background: "none", border: "none", cursor: "pointer", color: "#fff" }}>
+              {dark ? <Sun style={{ width: 18, height: 18 }} /> : <Moon style={{ width: 18, height: 18 }} />}
+            </button>
           </div>
-        </header>
+        </div>
 
-        {/* Page Content */}
-        <div className="flex-1 p-6">{children}</div>
-      </main>
+        {/* Page content */}
+        <div className="content">
+          {children}
+        </div>
+      </div>
     </div>
   );
 }

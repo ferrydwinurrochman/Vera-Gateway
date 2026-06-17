@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,7 +7,6 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/components/protected-route";
 import { Layout } from "@/components/layout";
 
-// Pages
 import NotFound from "@/pages/not-found";
 import { Login } from "@/pages/login";
 import { Dashboard } from "@/pages/dashboard";
@@ -21,12 +20,24 @@ import { PublicTopup } from "@/pages/public-topup";
 
 const queryClient = new QueryClient();
 
+function DarkModeManager() {
+  useEffect(() => {
+    const saved = localStorage.getItem("vg-theme");
+    if (saved === "dark") {
+      document.body.classList.add("dark");
+    } else {
+      document.body.classList.remove("dark");
+    }
+  }, []);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/" component={Login} />
-      
+
       <Route path="/dashboard">
         <ProtectedRoute>
           <Layout>
@@ -34,7 +45,7 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/transaksi">
         <ProtectedRoute>
           <Layout>
@@ -42,7 +53,7 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/sukses">
         <ProtectedRoute>
           <Layout>
@@ -50,7 +61,7 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/topup">
         <ProtectedRoute>
           <Layout>
@@ -58,7 +69,7 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/merchants">
         <ProtectedRoute requireAdmin>
           <Layout>
@@ -66,7 +77,7 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/users">
         <ProtectedRoute requireAdmin>
           <Layout>
@@ -74,7 +85,7 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/settings">
         <ProtectedRoute requireAdmin>
           <Layout>
@@ -82,7 +93,7 @@ function Router() {
           </Layout>
         </ProtectedRoute>
       </Route>
-      
+
       <Route path="/:merchantSlug" component={PublicTopup} />
       <Route component={NotFound} />
     </Switch>
@@ -95,9 +106,8 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
-            <div className="dark text-foreground bg-background min-h-screen">
-              <Router />
-            </div>
+            <DarkModeManager />
+            <Router />
           </AuthProvider>
         </WouterRouter>
         <Toaster />

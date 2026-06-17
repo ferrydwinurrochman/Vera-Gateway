@@ -1,0 +1,28 @@
+# STRICT UI REPLICATION DIRECTIVE
+
+**STOP ALL CREATIVE DESIGN INITIATIVES.** Do not use v0, terminal themes, hacker themes, or any default Tailwind templates. 
+
+My goal is a **1:1 PIXEL-PERFECT CLONE** of the legacy `index.php` UI. The new React/Next.js application must look EXACTLY like the PHP file provided in this workspace.
+
+Please execute the following steps strictly to rebuild the UI:
+
+## 1. GLOBAL CSS EXTRACTION (CRITICAL)
+- Open the `index.php` file uploaded in this workspace.
+- Locate the `<style>` block at the top of the file.
+- Copy EXACTLY all the raw CSS rules from that block into the React project's global CSS file (e.g., `index.css` or `globals.css`).
+- You MUST include `.sidebar`, `.main-content`, `.btn`, `.btn-primary`, `.tablecard`, `.badge`, and the entire `body.dark-mode` ruleset.
+- DO NOT convert these arbitrarily to Tailwind utility classes if it changes the visual outcome. Rely on the raw CSS class names to guarantee a 100% match.
+
+## 2. REBUILD THE LAYOUT SKELETON
+- Rebuild the `Layout` component to perfectly mirror the HTML DOM structure of `index.php`.
+- **Sidebar:** Must use `<div className="sidebar">`. It must have the exact same menu items: Dashboard, Payment Link, Report, Tools, Users, Merchant, Pengaturan Provider, Logout.
+- **Main Content & Topbar:** Must use `<div className="main-content">`. The top section must include the exact `[🌓]` button.
+- **Dark Mode Logic:** Implement the exact same dark mode toggle. When `[🌓]` is clicked, it should simply toggle the `dark-mode` class on the `<body>` element (just like the legacy JS: `document.body.classList.toggle('dark-mode')`).
+
+## 3. PAGE COMPONENT REPLICATION
+- Apply this exact visual structure to ALL pages: Dashboard, Topup (`/[merchantSlug]`), Users, Merchants, and Reports.
+- Every main container must be wrapped in `<div className="tablecard">` with the exact same padding as the legacy app.
+- All tables must use standard `<table>`, `<th>`, and `<td>` tags matching the legacy padding and borders.
+- All forms and inputs must use `<div className="field">` exactly as written in the PHP file.
+
+Do not touch the database, API routes, or backend logic. Your ONLY job right now is to rewrite the React components and CSS so that the user cannot visually tell the difference between the old `index.php` and this new app.

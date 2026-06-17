@@ -6,6 +6,7 @@ import { User } from "@workspace/api-client-react/src/generated/api.schemas";
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  isFetching: boolean;
   isError: boolean;
   logout: () => void;
 }
@@ -14,21 +15,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { data: user, isLoading, isError } = useGetMe({
+  const { data: user, isLoading, isFetching, isError } = useGetMe({
     query: {
       retry: false,
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      staleTime: 0,
       queryKey: getGetMeQueryKey(),
     }
   });
 
   const logout = () => {
-    queryClient.setQueryData(getGetMeQueryKey(), null);
-    queryClient.clear();
+    queryClient.removeQueries({ queryKey: getGetMeQueryKey() });
   };
 
   return (
-    <AuthContext.Provider value={{ user: user || null, isLoading, isError, logout }}>
+    <AuthContext.Provider value={{ user: user || null, isLoading, isFetching, isError, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,19 +5,13 @@ import {
   useCheckTransactionStatus,
 } from "@workspace/api-client-react";
 import { formatRupiah, formatDate } from "@/lib/utils";
-import { Search, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/use-debounce";
 
 function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case "SUKSES": return <span className="status-sukses">Sukses</span>;
-    case "MENUNGGU": return <span className="status-menunggu">Menunggu</span>;
-    case "GAGAL": return <span className="status-gagal">Gagal</span>;
-    case "KEDALUWARSA": return <span className="status-kedaluwarsa">Kedaluwarsa</span>;
-    default: return <span className="status-kedaluwarsa">{status}</span>;
-  }
+  const cls = status.toLowerCase();
+  return <span className={`badge ${cls}`}>{status.charAt(0) + status.slice(1).toLowerCase()}</span>;
 }
 
 const statusOptions = ["all", "MENUNGGU", "SUKSES", "GAGAL", "KEDALUWARSA"];
@@ -34,7 +28,6 @@ export function Transaksi() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
   const debouncedSearch = useDebounce(search, 500);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const queryParams = {
@@ -54,134 +47,94 @@ export function Transaksi() {
     checkStatusMutation.mutate(
       { ref },
       {
-        onSuccess: () => {
-          toast({ title: "Status berhasil diperbarui" });
-          refetch();
-        },
-        onError: (error: any) => {
-          toast({
-            title: "Gagal memperbarui status",
-            description: error?.error?.error || "Terjadi kesalahan",
-            variant: "destructive",
-          });
-        },
+        onSuccess: () => refetch(),
       }
     );
   };
 
+  const totalPages = data ? Math.ceil(data.total / 15) : 1;
+
   return (
-    <div className="space-y-5">
+    <>
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          {/* Search */}
-          <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-              style={{ color: "var(--muted-foreground)" }}
-            />
-            <input
-              type="text"
-              placeholder="Cari REF atau Customer ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="vera-input pl-9"
-              style={{ minWidth: "240px" }}
-            />
-          </div>
-          {/* Status filter */}
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="vera-input"
-            style={{ minWidth: "160px" }}
-          >
+      <div className="filters">
+        <div className="fg">
+          <label>Cari Transaksi</label>
+          <input
+            type="text"
+            placeholder="REF atau Customer ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ minWidth: 240 }}
+          />
+        </div>
+        <div className="fg">
+          <label>Status</label>
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
             {statusOptions.map((s) => (
               <option key={s} value={s}>{statusLabels[s]}</option>
             ))}
           </select>
         </div>
-        <button
-          className="btn-alt"
-          onClick={() => refetch()}
-          disabled={isLoading}
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
+        <div className="fg" style={{ justifyContent: "flex-end" }}>
+          <label>&nbsp;</label>
+          <button
+            className="btn alt sm"
+            onClick={() => refetch()}
+            disabled={isLoading}
+            style={{ display: "inline-flex", alignItems: "center", gap: 7 }}
+          >
+            <RefreshCw style={{ width: 14, height: 14 }} className={isLoading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Table */}
-      <div className="vera-card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+      <div className="tablecard">
+        <div className="table-scroll">
+          <table>
             <thead>
               <tr>
-                {["Ref No", "Waktu", "Customer / Merchant", "Nominal", "Status", "Aksi"].map((h, i) => (
-                  <th
-                    key={h}
-                    className={`py-3 px-4 text-xs font-bold uppercase tracking-wider ${i >= 3 ? "text-right" : "text-left"} ${i === 4 ? "text-center" : ""}`}
-                    style={{
-                      color: "var(--muted-foreground)",
-                      borderBottom: "1px solid var(--border)",
-                      backgroundColor: "rgba(255,255,255,0.03)",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
+                <th>Ref No</th>
+                <th>Waktu</th>
+                <th>Customer / Merchant</th>
+                <th style={{ textAlign: "right" }}>Nominal</th>
+                <th style={{ textAlign: "center" }}>Status</th>
+                <th style={{ textAlign: "right" }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                    <td colSpan={6} className="py-4 px-4 text-center">
-                      <div
-                        className="h-4 rounded animate-pulse mx-auto"
-                        style={{ backgroundColor: "var(--muted)", width: "70%" }}
-                      />
+                  <tr key={i}>
+                    <td colSpan={6} className="empty" style={{ padding: "12px 16px" }}>
+                      <div style={{ height: 14, background: "var(--line)", borderRadius: 6, animation: "pulse 1.5s ease-in-out infinite" }} />
                     </td>
                   </tr>
                 ))
               ) : data?.data && data.data.length > 0 ? (
                 data.data.map((tx) => (
-                  <tr
-                    key={tx.id}
-                    className="transition-colors"
-                    style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.03)")
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLElement).style.backgroundColor = "transparent")
-                    }
-                  >
-                    <td className="py-3 px-4 font-mono text-xs font-medium">{tx.ref}</td>
-                    <td className="py-3 px-4 text-xs" style={{ color: "var(--muted-foreground)" }}>
-                      {formatDate(tx.createdAt)}
+                  <tr key={tx.id}>
+                    <td className="mono" style={{ fontSize: 12 }}>{tx.ref}</td>
+                    <td className="muted" style={{ fontSize: 12 }}>{formatDate(tx.createdAt)}</td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{tx.customerId || "-"}</div>
+                      <div className="muted" style={{ fontSize: 11 }}>{tx.merchantName || "-"}</div>
                     </td>
-                    <td className="py-3 px-4">
-                      <div className="font-medium">{tx.customerId || "-"}</div>
-                      <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                        {tx.merchantName || "-"}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold">
-                      {formatRupiah(tx.amount)}
-                    </td>
-                    <td className="py-3 px-4 text-center">
+                    <td className="amt mono" style={{ textAlign: "right" }}>{formatRupiah(tx.amount)}</td>
+                    <td style={{ textAlign: "center" }}>
                       <StatusBadge status={tx.status} />
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td style={{ textAlign: "right" }} className="act">
                       {tx.status === "MENUNGGU" && (
                         <button
-                          className="btn-action"
+                          className="abtn"
                           onClick={() => handleCheck(tx.ref)}
                           disabled={checkStatusMutation.isPending}
                           title="Cek status dari provider"
                         >
-                          <RefreshCw className="w-3 h-3" />
+                          <RefreshCw style={{ width: 12, height: 12 }} />
                           Cek
                         </button>
                       )}
@@ -190,13 +143,7 @@ export function Transaksi() {
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="py-12 text-center"
-                    style={{ color: "var(--muted-foreground)" }}
-                  >
-                    Tidak ada transaksi yang ditemukan.
-                  </td>
+                  <td colSpan={6} className="empty">Tidak ada transaksi yang ditemukan.</td>
                 </tr>
               )}
             </tbody>
@@ -205,38 +152,44 @@ export function Transaksi() {
 
         {/* Pagination */}
         {data && data.total > 0 && (
-          <div
-            className="px-4 py-3 flex items-center justify-between"
-            style={{ borderTop: "1px solid var(--border)" }}
-          >
-            <span className="text-xs font-mono" style={{ color: "var(--muted-foreground)" }}>
-              {(page - 1) * 15 + 1}–{Math.min(page * 15, data.total)} dari {data.total}
+          <div className="pager">
+            <span className="info">
+              {(page - 1) * 15 + 1}–{Math.min(page * 15, data.total)} dari {data.total} transaksi
             </span>
-            <div className="flex items-center gap-2">
+            <div className="nums">
               <button
-                className="btn-alt text-xs px-3 py-1.5"
+                className={`pg${page === 1 ? " dis" : ""}`}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1 || isLoading}
               >
-                Sebelumnya
+                ‹
               </button>
-              <span
-                className="text-sm font-mono px-2"
-                style={{ color: "var(--foreground)" }}
-              >
-                {page}
-              </span>
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                const p = i + 1;
+                return (
+                  <button
+                    key={p}
+                    className={`pg${page === p ? " on" : ""}`}
+                    onClick={() => setPage(p)}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+              {totalPages > 7 && page < totalPages && (
+                <button className="pg dots">…</button>
+              )}
               <button
-                className="btn-alt text-xs px-3 py-1.5"
+                className={`pg${page * 15 >= data.total ? " dis" : ""}`}
                 onClick={() => setPage((p) => p + 1)}
                 disabled={page * 15 >= data.total || isLoading}
               >
-                Berikutnya
+                ›
               </button>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }

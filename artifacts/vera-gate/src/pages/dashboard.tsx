@@ -6,16 +6,10 @@ import {
   getGetDashboardRecentQueryKey,
 } from "@workspace/api-client-react";
 import { formatRupiah, formatDate } from "@/lib/utils";
-import { Wallet, Activity, CheckCircle2, Store } from "lucide-react";
 
-function formatStatus(status: string) {
-  switch (status) {
-    case "SUKSES": return <span className="status-sukses">Sukses</span>;
-    case "MENUNGGU": return <span className="status-menunggu">Menunggu</span>;
-    case "GAGAL": return <span className="status-gagal">Gagal</span>;
-    case "KEDALUWARSA": return <span className="status-kedaluwarsa">Kedaluwarsa</span>;
-    default: return <span className="status-kedaluwarsa">{status}</span>;
-  }
+function StatusBadge({ status }: { status: string }) {
+  const cls = status.toLowerCase();
+  return <span className={`badge ${cls}`}>{status.charAt(0) + status.slice(1).toLowerCase()}</span>;
 }
 
 export function Dashboard() {
@@ -49,177 +43,112 @@ export function Dashboard() {
     {
       label: "Volume Hari Ini",
       value: summary ? formatRupiah(summary.todayAmount) : "Rp 0",
-      sub: `${summary?.todayCount || 0} transaksi hari ini`,
-      icon: Wallet,
+      sub: `${summary?.todayCount || 0} transaksi`,
+      ic: "💰",
+      icBg: "rgba(44,92,146,.12)",
     },
     {
       label: "Total Volume",
       value: summary ? formatRupiah(summary.totalAmount) : "Rp 0",
-      sub: `${summary?.totalTransactions || 0} total transaksi`,
-      icon: Activity,
+      sub: `${summary?.totalTransactions || 0} total`,
+      ic: "📊",
+      icBg: "rgba(44,92,146,.12)",
     },
     {
       label: "Tingkat Sukses",
       value: `${successRate}%`,
-      sub: "Berdasarkan data hari ini",
-      icon: CheckCircle2,
+      sub: "Hari ini",
+      ic: "✅",
+      icBg: "rgba(30,126,76,.12)",
     },
     {
       label: "Merchant Aktif",
-      value: summary?.topMerchants?.length || 0,
-      sub: "Dengan transaksi hari ini",
-      icon: Store,
+      value: String(summary?.topMerchants?.length || 0),
+      sub: "Dengan transaksi",
+      ic: "🏪",
+      icBg: "rgba(44,92,146,.12)",
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Live indicator */}
-      <div className="flex items-center gap-2">
-        <span className="relative flex h-2 w-2">
-          <span
-            className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-            style={{ backgroundColor: "#4ade80" }}
-          />
-          <span
-            className="relative inline-flex rounded-full h-2 w-2"
-            style={{ backgroundColor: "#22c55e" }}
-          />
-        </span>
-        <span className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-          Auto-refresh setiap 7 detik
-        </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+        <span style={{
+          width: 8, height: 8, borderRadius: "50%", background: "var(--green)",
+          display: "inline-block", boxShadow: "0 0 0 3px var(--green-bg)"
+        }} />
+        <span className="muted" style={{ fontSize: 12 }}>Auto-refresh setiap 7 detik</span>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(({ label, value, sub, icon: Icon }, i) => (
-          <div key={i} className="vera-card p-4">
-            <div className="flex items-start justify-between mb-3">
-              <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>
-                {label}
-              </p>
-              <div
-                className="p-2 rounded-lg"
-                style={{ backgroundColor: "rgba(59,130,246,0.1)" }}
-              >
-                <Icon className="w-4 h-4" style={{ color: "var(--primary)" }} />
-              </div>
+      {/* Summary cards */}
+      <div className="summary">
+        {stats.map(({ label, value, sub, ic, icBg }, i) => (
+          <div key={i} className="sc">
+            <div className="l">
+              <div className="ic" style={{ background: icBg }}>{ic}</div>
+              {label}
             </div>
             {isLoadingSummary ? (
-              <div className="space-y-2">
-                <div
-                  className="h-7 w-28 rounded animate-pulse"
-                  style={{ backgroundColor: "var(--muted)" }}
-                />
-                <div
-                  className="h-3 w-20 rounded animate-pulse"
-                  style={{ backgroundColor: "var(--muted)" }}
-                />
-              </div>
+              <div style={{ height: 28, marginTop: 9, background: "var(--line)", borderRadius: 8, animation: "pulse 1.5s ease-in-out infinite" }} />
             ) : (
               <>
-                <p className="text-2xl font-bold" style={{ color: "var(--foreground)" }}>
-                  {value}
-                </p>
-                <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
-                  {sub}
-                </p>
+                <div className="v mono">{value}</div>
+                <div className="s">{sub}</div>
               </>
             )}
           </div>
         ))}
       </div>
 
-      {/* Recent Transactions + Status Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Transactions Table */}
-        <div className="vera-card lg:col-span-2">
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-            <h3 className="font-bold" style={{ color: "var(--foreground)" }}>
-              Transaksi Terbaru
-            </h3>
-            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-              Aktivitas terkini dari semua merchant
-            </p>
+      {/* Recent transactions + status breakdown */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 14 }}>
+        {/* Recent table */}
+        <div className="tablecard">
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)" }}>
+            <strong style={{ fontSize: 14 }}>Transaksi Terbaru</strong>
+            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Aktivitas terkini dari semua merchant</div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="table-scroll">
+            <table>
               <thead>
                 <tr>
-                  {["Ref No", "Customer / Merchant", "Nominal", "Status", "Waktu"].map((h, i) => (
-                    <th
-                      key={h}
-                      className={`py-3 text-xs font-bold uppercase tracking-wider ${i === 0 ? "text-left px-5" : i === 2 ? "text-right px-4" : i === 3 ? "text-center px-4" : i === 4 ? "text-right px-5" : "text-left px-4"}`}
-                      style={{
-                        color: "var(--muted-foreground)",
-                        borderBottom: "1px solid var(--border)",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  <th>Ref No</th>
+                  <th>Customer / Merchant</th>
+                  <th style={{ textAlign: "right" }}>Nominal</th>
+                  <th style={{ textAlign: "center" }}>Status</th>
+                  <th style={{ textAlign: "right" }}>Waktu</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoadingRecent ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
-                      <td colSpan={5} className="py-4 px-5 text-center">
-                        <div
-                          className="h-4 rounded animate-pulse mx-auto"
-                          style={{ backgroundColor: "var(--muted)", width: "80%" }}
-                        />
+                      <td colSpan={5} className="empty" style={{ padding: "12px 16px" }}>
+                        <div style={{ height: 14, background: "var(--line)", borderRadius: 6, animation: "pulse 1.5s ease-in-out infinite" }} />
                       </td>
                     </tr>
                   ))
                 ) : recent?.data && recent.data.length > 0 ? (
                   recent.data.map((tx) => (
-                    <tr
-                      key={tx.id}
-                      className="transition-colors"
-                      style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-                      onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.03)")
-                      }
-                      onMouseLeave={(e) =>
-                        ((e.currentTarget as HTMLElement).style.backgroundColor = "transparent")
-                      }
-                    >
-                      <td className="py-3 px-5 font-mono text-xs font-medium">
-                        {tx.ref}
+                    <tr key={tx.id}>
+                      <td className="mono" style={{ fontSize: 12 }}>{tx.ref}</td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{tx.customerId || "-"}</div>
+                        <div className="muted" style={{ fontSize: 11 }}>{tx.merchantName || "-"}</div>
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                          {tx.customerId || "-"}
-                        </div>
-                        <div className="text-xs" style={{ color: "var(--muted-foreground)" }}>
-                          {tx.merchantName || "-"}
-                        </div>
+                      <td className="amt mono" style={{ textAlign: "right" }}>{formatRupiah(tx.amount)}</td>
+                      <td style={{ textAlign: "center" }}>
+                        <StatusBadge status={tx.status} />
                       </td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-sm">
-                        {formatRupiah(tx.amount)}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {formatStatus(tx.status)}
-                      </td>
-                      <td
-                        className="py-3 px-5 text-right text-xs"
-                        style={{ color: "var(--muted-foreground)" }}
-                      >
+                      <td className="muted mono" style={{ textAlign: "right", fontSize: 12 }}>
                         {new Date(tx.createdAt).toLocaleTimeString("id-ID")}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td
-                      colSpan={5}
-                      className="py-10 text-center text-sm"
-                      style={{ color: "var(--muted-foreground)" }}
-                    >
-                      Belum ada transaksi.
-                    </td>
+                    <td colSpan={5} className="empty">Belum ada transaksi.</td>
                   </tr>
                 )}
               </tbody>
@@ -227,67 +156,38 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Status Breakdown */}
-        <div className="vera-card">
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--border)" }}>
-            <h3 className="font-bold" style={{ color: "var(--foreground)" }}>
-              Ringkasan Status
-            </h3>
-            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
-              Semua waktu
-            </p>
+        {/* Status breakdown */}
+        <div className="tablecard">
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)" }}>
+            <strong style={{ fontSize: 14 }}>Ringkasan Status</strong>
+            <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>Semua waktu</div>
           </div>
-          <div className="p-5 space-y-4">
+          <div style={{ padding: "16px" }}>
             {isLoadingSummary ? (
               Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-10 rounded animate-pulse"
-                  style={{ backgroundColor: "var(--muted)" }}
-                />
+                <div key={i} style={{ height: 40, marginBottom: 12, background: "var(--line)", borderRadius: 8, animation: "pulse 1.5s ease-in-out infinite" }} />
               ))
             ) : summary?.byStatus ? (
               summary.byStatus.map((s) => {
-                const colors: Record<string, string> = {
-                  SUKSES: "#4ade80",
-                  MENUNGGU: "#fbbf24",
-                  GAGAL: "#f87171",
-                  KEDALUWARSA: "#9ca3af",
+                const statusCls: Record<string, string> = {
+                  SUKSES: "sukses", MENUNGGU: "menunggu", GAGAL: "gagal", KEDALUWARSA: "kedaluwarsa"
+                };
+                const barColors: Record<string, string> = {
+                  SUKSES: "var(--green)", MENUNGGU: "var(--amber)", GAGAL: "var(--red)", KEDALUWARSA: "var(--muted)"
                 };
                 const pct = summary.totalTransactions > 0
                   ? Math.round((s.count / summary.totalTransactions) * 100)
                   : 0;
                 return (
-                  <div key={s.status}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: colors[s.status] || "#9ca3af" }}
-                        />
-                        <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-                          {s.status}
-                        </span>
-                      </div>
-                      <span className="text-sm font-mono font-bold" style={{ color: "var(--foreground)" }}>
-                        {s.count}
-                      </span>
+                  <div key={s.status} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                      <span className={`badge ${statusCls[s.status] || "kedaluwarsa"}`}>{s.status}</span>
+                      <span className="mono" style={{ fontWeight: 700, fontSize: 13 }}>{s.count}</span>
                     </div>
-                    <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--muted)" }}>
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: colors[s.status] || "#9ca3af",
-                        }}
-                      />
+                    <div style={{ height: 5, background: "var(--line)", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pct}%`, background: barColors[s.status] || "var(--muted)", borderRadius: 4, transition: "width .4s" }} />
                     </div>
-                    <div
-                      className="text-xs text-right mt-1 font-mono"
-                      style={{ color: "var(--muted-foreground)" }}
-                    >
-                      {formatRupiah(s.amount)}
-                    </div>
+                    <div className="muted mono" style={{ fontSize: 11, textAlign: "right", marginTop: 3 }}>{formatRupiah(s.amount)}</div>
                   </div>
                 );
               })
@@ -295,6 +195,35 @@ export function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Top Merchants */}
+      {summary?.topMerchants && summary.topMerchants.length > 0 && (
+        <div className="tablecard">
+          <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--line)" }}>
+            <strong style={{ fontSize: 14 }}>Top Merchant Hari Ini</strong>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Merchant</th>
+                  <th style={{ textAlign: "right" }}>Transaksi</th>
+                  <th style={{ textAlign: "right" }}>Volume</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.topMerchants.map((m: any) => (
+                  <tr key={m.merchantId}>
+                    <td><span className="uname">{m.merchantName || `ID: ${m.merchantId}`}</span></td>
+                    <td className="mono" style={{ textAlign: "right", fontWeight: 700 }}>{m.count}</td>
+                    <td className="amt mono" style={{ textAlign: "right" }}>{formatRupiah(m.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
