@@ -1,0 +1,20 @@
+Saya ingin membangun ulang project Payment Gateway 'VERA GATE' dari awal menggunakan Next.js (App Router), TypeScript, dan MySQL (Prisma ORM). Saya telah melampirkan file index.php (logika legacy) dan sebuah file .zip berisi UI frontend yang dibuat melalui v0.
+Tugas Utama:
+Frontend Integration: Ekstrak file .zip dari v0 dan gunakan sebagai pondasi UI utama di dalam folder app/. Sesuaikan routing agar sesuai dengan struktur Next.js.
+Database Migration: Ganti sistem SQLite lama menjadi MySQL. Gunakan Prisma untuk mendefinisikan schema berdasarkan tabel transaksi, merchants, users, dan pengaturan yang ada di PHP.
+Backend Logic Porting: Porting fungsi PHP berikut ke dalam API Routes (Node.js) menggunakan library crypto untuk MD5:
+flypay_sign (Logika signature Flypay).
+flypay_create_deposit & flypay_create_withdrawal.
+flypay_check_status & Callback handler.
+Perbaikan Bug & Request Khusus (WAJIB):
+Status Lock Logic: Implementasikan proteksi ketat. Jika transaksi sudah berstatus 'SUKSES', sistem dilarang keras mengubahnya kembali menjadi 'GAGAL' atau 'KEDALUWARSA', baik melalui script otomatis maupun webhook.
+Fix Midnight Bug: Pastikan semua query database menggunakan objek Date yang konsisten dengan timezone Asia/Jakarta. Masalah data hilang jam 12 malam di project lama harus tuntas dengan penanganan DateTime MySQL yang benar.
+Smart Auto-Refresh: Di Dashboard Admin, gunakan TanStack Query (React Query) untuk fetching data secara realtime setiap 5-10 detik. Jangan gunakan window.location.reload() agar posisi scroll user tidak kembali ke atas (fix scroll jump).
+Anti-Double Generate: Di menu Topup, tambahkan validasi: Jika seorang user memiliki transaksi berstatus 'MENUNGGU', jangan izinkan generate QRIS baru selama 20 menit (Cooldown). Tampilkan pesan error yang informatif.
+QRIS UI Optimization: Pastikan tampilan QRIS di mobile 'Fit' (tidak terpotong dan tidak perlu scroll). Tambahkan teks disclaimer: "QRIS SEKALI PAKAI, KE MENU TOPUP LAGI UNTUK TOPUP SELANJUTNYA".
+New Menu: Buat satu halaman/view khusus yang hanya menampilkan transaksi berstatus 'SUKSES'.
+Langkah Awal:
+Setup boilerplate Next.js.
+Konfigurasi Prisma dengan MySQL.
+Implementasikan folder lib/flypay.ts untuk menangani komunikasi API Flypay.
+Gabungkan komponen UI dari file zip v0 yang saya lampirkan."
