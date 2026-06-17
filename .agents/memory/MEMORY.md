@@ -1,1 +1,2 @@
 - [Dashboard SQL fix](dashboard-sql.md) — use `inArray()` not raw `ANY()` syntax for merchantIds lookup in dashboard summary route.
+- [API server startup quirks](api-server-startup.md) — mysql2 must be bundled (not external), PORT and BASE_PATH must be injected in dev workflow commands.
