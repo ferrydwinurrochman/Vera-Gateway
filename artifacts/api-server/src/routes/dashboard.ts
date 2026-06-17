@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, transactionsTable, merchantsTable } from "@workspace/db";
-import { eq, sql, gte, desc, inArray } from "drizzle-orm";
+import { eq, sql, gte, and, desc, inArray } from "drizzle-orm";
 import { GetDashboardSummaryQueryParams, GetDashboardRecentQueryParams } from "@workspace/api-zod";
 
 const router = Router();
@@ -31,29 +31,44 @@ router.get("/summary", async (req, res) => {
   const parsed = GetDashboardSummaryQueryParams.safeParse(req.query);
   const period = parsed.success ? (parsed.data.period ?? "today") : "today";
 
+  const session = req.session as Record<string, unknown>;
+  const role = session["role"] as string | undefined;
+  const sessionMerchantId = session["merchantId"] as number | null | undefined;
+
+  // Operators are scoped to their own merchant; only admin sees all
+  const merchantFilter =
+    role === "operator" && sessionMerchantId != null
+      ? eq(transactionsTable.merchantId, sessionMerchantId)
+      : undefined;
+
   const periodStart = getPeriodStart(period);
 
-  // Total counts (all time)
+  // Total counts (all time, scoped by merchant if operator)
   const totalRows = await db.select({
     status: transactionsTable.status,
     count: sql<number>`count(*)::int`,
     amount: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)::int`,
-  }).from(transactionsTable).groupBy(transactionsTable.status);
+  }).from(transactionsTable).where(merchantFilter).groupBy(transactionsTable.status);
 
   const totalTransactions = totalRows.reduce((s, r) => s + r.count, 0);
   const totalAmount = totalRows.reduce((s, r) => s + r.amount, 0);
 
-  // Today stats (always use today)
+  // Today stats (always use today, scoped by merchant if operator)
   const todayStart = getPeriodStart("today")!;
+  const todayCondition = merchantFilter
+    ? and(gte(transactionsTable.createdAt, todayStart), merchantFilter)
+    : gte(transactionsTable.createdAt, todayStart);
   const [todayRow] = await db.select({
     count: sql<number>`count(*)::int`,
     amount: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)::int`,
-  }).from(transactionsTable).where(
-    gte(transactionsTable.createdAt, todayStart)
-  );
+  }).from(transactionsTable).where(todayCondition);
 
-  // Period-filtered by status
-  const periodCondition = periodStart ? gte(transactionsTable.createdAt, periodStart) : undefined;
+  // Period-filtered by status, scoped by merchant if operator
+  const periodCondition = periodStart
+    ? merchantFilter
+      ? and(gte(transactionsTable.createdAt, periodStart), merchantFilter)
+      : gte(transactionsTable.createdAt, periodStart)
+    : undefined;
   const periodRows = periodCondition
     ? await db.select({
         status: transactionsTable.status,
@@ -72,7 +87,11 @@ router.get("/summary", async (req, res) => {
     return { status: def.status, count: row?.count ?? 0, amount: row?.amount ?? 0 };
   });
 
-  // Top merchants (SUKSES only)
+  // Top merchants (SUKSES only, scoped by merchant if operator)
+  const topMerchantsWhere = merchantFilter
+    ? and(eq(transactionsTable.status, "SUKSES"), merchantFilter)
+    : eq(transactionsTable.status, "SUKSES");
+
   const topMerchantsRaw = await db
     .select({
       merchantId: transactionsTable.merchantId,
@@ -80,7 +99,7 @@ router.get("/summary", async (req, res) => {
       amount: sql<number>`coalesce(sum(${transactionsTable.amount}), 0)::int`,
     })
     .from(transactionsTable)
-    .where(eq(transactionsTable.status, "SUKSES"))
+    .where(topMerchantsWhere)
     .groupBy(transactionsTable.merchantId)
     .orderBy(desc(sql`sum(${transactionsTable.amount})`))
     .limit(5);
@@ -120,7 +139,21 @@ router.get("/recent", async (req, res) => {
   const parsed = GetDashboardRecentQueryParams.safeParse(req.query);
   const limit = Math.min(50, parsed.success ? (parsed.data.limit ?? 10) : 10);
 
-  const rows = await db.select().from(transactionsTable).orderBy(desc(transactionsTable.createdAt)).limit(limit);
+  const session = req.session as Record<string, unknown>;
+  const role = session["role"] as string | undefined;
+  const sessionMerchantId = session["merchantId"] as number | null | undefined;
+
+  const merchantFilter =
+    role === "operator" && sessionMerchantId != null
+      ? eq(transactionsTable.merchantId, sessionMerchantId)
+      : undefined;
+
+  const rows = await db
+    .select()
+    .from(transactionsTable)
+    .where(merchantFilter)
+    .orderBy(desc(transactionsTable.createdAt))
+    .limit(limit);
 
   res.json(rows.map((r) => ({
     id: r.id,

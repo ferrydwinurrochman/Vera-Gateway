@@ -5,6 +5,32 @@ import { CreateMerchantBody, UpdateMerchantBody, UpdateMerchantParams, DeleteMer
 
 const router = Router();
 
+router.get("/by-slug/:slug", async (req, res) => {
+  const { slug } = req.params;
+  if (!slug) {
+    res.status(400).json({ error: "Slug is required" });
+    return;
+  }
+
+  const [merchant] = await db
+    .select()
+    .from(merchantsTable)
+    .where(eq(merchantsTable.code, slug))
+    .limit(1);
+
+  if (!merchant) {
+    res.status(404).json({ error: "Merchant not found" });
+    return;
+  }
+
+  res.json({
+    id: merchant.id,
+    name: merchant.name,
+    code: merchant.code,
+    isActive: merchant.isActive,
+  });
+});
+
 router.get("/", async (_req, res) => {
   const merchants = await db.select().from(merchantsTable).orderBy(merchantsTable.createdAt);
   res.json(merchants.map((m) => ({

@@ -23,6 +23,7 @@ router.post("/login", async (req, res) => {
 
   (req.session as Record<string, unknown>)["userId"] = user.id;
   (req.session as Record<string, unknown>)["role"] = user.role;
+  (req.session as Record<string, unknown>)["merchantId"] = user.merchantId ?? null;
 
   res.json({
     user: {

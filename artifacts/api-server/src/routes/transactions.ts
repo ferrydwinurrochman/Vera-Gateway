@@ -57,9 +57,20 @@ router.get("/", async (req, res) => {
   const parsed = ListTransactionsQueryParams.safeParse(req.query);
   const params = parsed.success ? parsed.data : {};
 
+  const session = req.session as Record<string, unknown>;
+  const role = session["role"] as string | undefined;
+  const sessionMerchantId = session["merchantId"] as number | null | undefined;
+
   const conditions = [];
   if (params.status) conditions.push(eq(transactionsTable.status, params.status));
-  if (params.merchantId) conditions.push(eq(transactionsTable.merchantId, Number(params.merchantId)));
+
+  // Operators can only see their own merchant's transactions; ignore any
+  // merchantId query param they pass and force-scope to their own.
+  if (role === "operator" && sessionMerchantId != null) {
+    conditions.push(eq(transactionsTable.merchantId, sessionMerchantId));
+  } else if (params.merchantId) {
+    conditions.push(eq(transactionsTable.merchantId, Number(params.merchantId)));
+  }
   if (params.startDate) {
     const start = new Date(params.startDate);
     if (!isNaN(start.getTime())) conditions.push(gte(transactionsTable.createdAt, start));

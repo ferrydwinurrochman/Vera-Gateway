@@ -17,6 +17,7 @@ import { Topup } from "@/pages/topup";
 import { Merchants } from "@/pages/merchants";
 import { Users } from "@/pages/users";
 import { Settings } from "@/pages/settings";
+import { PublicTopup } from "@/pages/public-topup";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +83,7 @@ function Router() {
         </ProtectedRoute>
       </Route>
       
+      <Route path="/:merchantSlug" component={PublicTopup} />
       <Route component={NotFound} />
     </Switch>
   );
