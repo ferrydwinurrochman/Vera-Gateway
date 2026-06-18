@@ -3,7 +3,11 @@ import { useLocation } from "wouter";
 import { useLogin, getGetMeQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function Login() {
   const [username, setUsername] = useState("");
@@ -12,7 +16,6 @@ export function Login() {
   const [, setLocation] = useLocation();
   const { user, isLoading, isFetching } = useAuth();
   const queryClient = useQueryClient();
-
   const loginMutation = useLogin();
 
   useEffect(() => {
@@ -23,8 +26,8 @@ export function Login() {
 
   if (isLoading || isFetching) {
     return (
-      <div className="center">
-        <Loader2 style={{ width: 32, height: 32, animation: "spin 1s linear infinite", color: "var(--blue)" }} />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -34,12 +37,10 @@ export function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
     if (!username || !password) {
       setError("Username dan password harus diisi");
       return;
     }
-
     loginMutation.mutate(
       { data: { username, password } },
       {
@@ -55,56 +56,68 @@ export function Login() {
   };
 
   return (
-    <div className="center">
-      <div className="card">
-        <div className="brand" style={{ justifyContent: "center", marginBottom: "8px" }}>
-          <div className="chip">
-            <span>VG</span>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm">
+        {/* Brand */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg mb-4">
+            <ShieldCheck className="w-7 h-7 text-primary-foreground" />
           </div>
+          <h1 className="text-2xl font-bold tracking-tight">VERA GATE</h1>
+          <p className="text-sm text-muted-foreground mt-1">Payment Gateway Dashboard</p>
         </div>
-        <h1>VERA GATE</h1>
-        <p className="sub">Payment Gateway Dashboard</p>
 
-        {error && <div className="flash err">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label>Username</label>
-            <input
-              type="text"
-              placeholder="admin"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoFocus
-              autoComplete="username"
-            />
-          </div>
-          <div className="field">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </div>
-          <button
-            type="submit"
-            className="btn"
-            disabled={loginMutation.isPending}
-          >
-            {loginMutation.isPending ? (
-              <>
-                <Loader2 style={{ width: 17, height: 17, animation: "spin 1s linear infinite" }} />
-                Memproses...
-              </>
-            ) : (
-              "Masuk"
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Masuk ke Dashboard</CardTitle>
+            <CardDescription>Gunakan kredensial akun Anda.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <div className="mb-4 px-3 py-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                {error}
+              </div>
             )}
-          </button>
-        </form>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="admin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoFocus
+                  autoComplete="username"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                {loginMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Memproses...
+                  </>
+                ) : (
+                  "Masuk"
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-        <p className="backlink">© {new Date().getFullYear()} VERA GATE</p>
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          © {new Date().getFullYear()} VERA GATE
+        </p>
       </div>
     </div>
   );

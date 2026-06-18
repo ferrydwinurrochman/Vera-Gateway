@@ -1,31 +1,36 @@
 import React, { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+  Banknote,
+  Download,
+  FileJson,
+  FileSpreadsheet,
+  Printer,
+  RotateCcw,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
-
-function trow(title: string, desc: string, action: React.ReactNode) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14 }}>
-      <div>
-        <div style={{ fontWeight: 700 }} dangerouslySetInnerHTML={{ __html: title }} />
-        <div style={{ fontSize: 12, color: "var(--muted)" }}>{desc}</div>
-      </div>
-      {action}
-    </div>
-  );
-}
+const BANKS = ["BCA", "BRI", "BNI", "MANDIRI", "DANA", "OVO", "GOPAY", "SHOPEEPAY"];
 
 export function Tools() {
   const [bankCode, setBankCode] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [accountName, setAccountName] = useState("");
   const [nominal, setNominal] = useState("");
-  const [flash, setFlash] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [alert, setAlert] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [resetting, setResetting] = useState(false);
 
   const handleWithdraw = (e: React.FormEvent) => {
     e.preventDefault();
     if (!confirm("Pastikan nomor rekening dan nominal sudah benar. Lanjutkan pencairan?")) return;
-    setFlash({ msg: "Fitur disbursement via API Flypay memerlukan konfigurasi kredensial live di Pengaturan Provider.", type: "err" });
+    setAlert({ msg: "Fitur disbursement via API Flypay memerlukan konfigurasi kredensial live di Pengaturan Provider.", type: "err" });
   };
 
   const handleReset = async () => {
@@ -35,12 +40,12 @@ export function Tools() {
       const res = await fetch(`${BASE}/api/transactions/reset`, { method: "POST", credentials: "include" });
       const data = await res.json();
       if (res.ok) {
-        setFlash({ msg: data.message || "Data transaksi berhasil direset.", type: "ok" });
+        setAlert({ msg: data.message || "Data transaksi berhasil direset.", type: "ok" });
       } else {
-        setFlash({ msg: data.error || "Gagal reset data.", type: "err" });
+        setAlert({ msg: data.error || "Gagal reset data.", type: "err" });
       }
     } catch {
-      setFlash({ msg: "Gagal terhubung ke server.", type: "err" });
+      setAlert({ msg: "Gagal terhubung ke server.", type: "err" });
     } finally {
       setResetting(false);
     }
@@ -51,98 +56,155 @@ export function Tools() {
   const handlePrintPdf = () => { window.open(`${window.location.origin}/report`, "_blank"); };
 
   return (
-    <>
-      {flash && (
-        <div className={`flash ${flash.type}`} style={{ marginBottom: 16 }}>{flash.msg}</div>
+    <div className="space-y-5 max-w-2xl">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-bold tracking-tight">Tools</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Disbursement, ekspor data, dan manajemen sistem.</p>
+      </div>
+
+      {alert && (
+        <div
+          className={`px-4 py-3 rounded-lg border text-sm flex items-start gap-2 ${
+            alert.type === "ok"
+              ? "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400"
+              : "bg-destructive/10 border-destructive/20 text-destructive"
+          }`}
+        >
+          <AlertTriangle size={15} className="flex-shrink-0 mt-0.5" />
+          {alert.msg}
+        </div>
       )}
 
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Tarik Dana (Disbursement)</div>
-      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>
-        Kirim saldo ke rekening bank / e-wallet via API Flypay.
-      </div>
-
-      <div className="tablecard" style={{ padding: 22, maxWidth: 580, marginBottom: 24, border: "2px solid var(--blue)" }}>
-        <form onSubmit={handleWithdraw}>
-          <div className="field">
-            <label>Bank / E-Wallet Tujuan (Sesuai Singkatan Flypay)</label>
-            <input
-              name="bankCode"
-              value={bankCode}
-              onChange={e => setBankCode(e.target.value)}
-              required
-              placeholder="cth: BCA, BRI, MANDIRI, DANA, OVO"
-            />
-          </div>
-          <div className="field">
-            <label>Nomor Rekening / HP E-Wallet</label>
-            <input
-              name="accountNumber"
-              value={accountNumber}
-              onChange={e => setAccountNumber(e.target.value)}
-              required
-              placeholder="cth: 0123456789"
-            />
-          </div>
-          <div className="field">
-            <label>Nama Pemilik Rekening</label>
-            <input
-              name="accountName"
-              value={accountName}
-              onChange={e => setAccountName(e.target.value)}
-              required
-              placeholder="cth: Budi Santoso"
-            />
-          </div>
-          <div className="field">
-            <label>Nominal Penarikan</label>
-            <div className="ip-rp">
-              <span className="pre">Rp</span>
-              <input
-                name="nominal"
-                inputMode="numeric"
-                value={nominal}
-                onChange={e => setNominal(e.target.value.replace(/[^0-9]/g, ""))}
+      {/* Disbursement */}
+      <Card className="shadow-none">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Banknote size={16} />
+            Tarik Dana (Disbursement)
+          </CardTitle>
+          <CardDescription>Kirim saldo ke rekening bank / e-wallet via API Flypay.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleWithdraw} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Bank / E-Wallet Tujuan</Label>
+              <Select value={bankCode} onValueChange={setBankCode}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih bank / e-wallet" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BANKS.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="acc-no">Nomor Rekening / HP E-Wallet</Label>
+              <Input
+                id="acc-no"
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
                 required
-                placeholder="cth: 100000"
+                placeholder="0123456789"
+                inputMode="numeric"
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="acc-name">Nama Pemilik Rekening</Label>
+              <Input
+                id="acc-name"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                required
+                placeholder="Budi Santoso"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="nominal">Nominal Penarikan</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">Rp</span>
+                <Input
+                  id="nominal"
+                  className="pl-9"
+                  inputMode="numeric"
+                  value={nominal}
+                  onChange={(e) => setNominal(e.target.value.replace(/[^0-9]/g, ""))}
+                  required
+                  placeholder="100000"
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full">
+              Cairkan Dana Sekarang
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Export & Tools */}
+      <Card className="shadow-none">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Download size={16} />
+            Ekspor & Kelola Data
+          </CardTitle>
+          <CardDescription>Unduh data transaksi dan kelola sistem.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-0">
+          {/* CSV */}
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium">Ekspor CSV</p>
+              <p className="text-xs text-muted-foreground">Unduh semua transaksi (Excel-friendly).</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleExportCsv}>
+              <FileSpreadsheet size={13} className="mr-2" />
+              Unduh CSV
+            </Button>
           </div>
-          <button className="btn" type="submit">Cairkan Dana Sekarang</button>
-        </form>
-      </div>
-
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Tools</div>
-      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>Kelola data & ekspor transaksi.</div>
-
-      <div className="tablecard" style={{ padding: 22, maxWidth: 580, display: "flex", flexDirection: "column", gap: 16 }}>
-        {trow(
-          "Ekspor CSV",
-          "Unduh semua transaksi (Excel-friendly).",
-          <button className="btn sm" onClick={handleExportCsv}>Unduh CSV</button>
-        )}
-        {trow(
-          "Ekspor JSON",
-          "Cadangan data mentah.",
-          <button className="btn sm" onClick={handleExportJson}>Unduh JSON</button>
-        )}
-        {trow(
-          "Cetak / PDF",
-          "Buka tampilan cetak lalu Simpan sebagai PDF.",
-          <button className="btn sm" onClick={handlePrintPdf}>Buka PDF</button>
-        )}
-        {trow(
-          '<span style="color:var(--red)">Reset Data</span>',
-          "Hapus semua transaksi merchant ini.",
-          <button
-            className="btn sm"
-            style={{ background: "var(--red)" }}
-            onClick={handleReset}
-            disabled={resetting}
-          >
-            {resetting ? "Mereset..." : "Reset"}
-          </button>
-        )}
-      </div>
-    </>
+          <Separator />
+          {/* JSON */}
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium">Ekspor JSON</p>
+              <p className="text-xs text-muted-foreground">Cadangan data mentah.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleExportJson}>
+              <FileJson size={13} className="mr-2" />
+              Unduh JSON
+            </Button>
+          </div>
+          <Separator />
+          {/* PDF */}
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium">Cetak / PDF</p>
+              <p className="text-xs text-muted-foreground">Buka tampilan cetak lalu Simpan sebagai PDF.</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={handlePrintPdf}>
+              <Printer size={13} className="mr-2" />
+              Buka PDF
+            </Button>
+          </div>
+          <Separator />
+          {/* Reset */}
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-semibold text-destructive">Reset Data</p>
+              <p className="text-xs text-muted-foreground">Hapus semua transaksi merchant ini.</p>
+            </div>
+            <Button variant="destructive" size="sm" onClick={handleReset} disabled={resetting}>
+              {resetting ? (
+                <><Loader2 size={13} className="mr-2 animate-spin" />Mereset...</>
+              ) : (
+                <><RotateCcw size={13} className="mr-2" />Reset</>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

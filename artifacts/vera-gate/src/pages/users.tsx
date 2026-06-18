@@ -1,33 +1,29 @@
 import React, { useState } from "react";
 import {
-  useListUsers,
-  getListUsersQueryKey,
-  useCreateUser,
-  useUpdateUser,
-  useDeleteUser,
-  useListMerchants,
-  getListMerchantsQueryKey,
+  useListUsers, getListUsersQueryKey, useCreateUser, useUpdateUser, useDeleteUser,
+  useListMerchants, getListMerchantsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit2, Trash2, Shield, Loader2, AlertTriangle } from "lucide-react";
+import { Plus, Edit2, Trash2, Shield, Loader2, AlertTriangle, Users as UsersIcon } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+
+const roleBadge: Record<string, string> = {
+  admin: "bg-primary/10 text-primary border-primary/20",
+  operator: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  merchant: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+};
 
 export function Users() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -42,14 +38,8 @@ export function Users() {
   });
 
   const queryClient = useQueryClient();
-
-  const { data: users, isLoading } = useListUsers({
-    query: { queryKey: getListUsersQueryKey() },
-  });
-  const { data: merchants } = useListMerchants({
-    query: { queryKey: getListMerchantsQueryKey() },
-  });
-
+  const { data: users, isLoading } = useListUsers({ query: { queryKey: getListUsersQueryKey() } });
+  const { data: merchants } = useListMerchants({ query: { queryKey: getListMerchantsQueryKey() } });
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
   const deleteMutation = useDeleteUser();
@@ -74,13 +64,10 @@ export function Users() {
     e.preventDefault();
     if (!formData.password) { alert("Password wajib diisi untuk pengguna baru"); return; }
     const payload = { ...formData, merchantId: formData.merchantId ? parseInt(formData.merchantId as string) : null };
-    createMutation.mutate(
-      { data: payload },
-      {
-        onSuccess: () => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() }); },
-        onError: (err) => alert((err as any).error?.error || "Gagal menambahkan"),
-      }
-    );
+    createMutation.mutate({ data: payload }, {
+      onSuccess: () => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() }); },
+      onError: (err) => alert((err as any).error?.error || "Gagal menambahkan"),
+    });
   };
 
   const handleUpdate = (e: React.FormEvent) => {
@@ -88,51 +75,44 @@ export function Users() {
     if (!selectedUser) return;
     const payload: any = { username: formData.username, role: formData.role, merchantId: formData.merchantId ? parseInt(formData.merchantId as string) : null };
     if (formData.password) payload.password = formData.password;
-    updateMutation.mutate(
-      { id: selectedUser.id, data: payload },
-      {
-        onSuccess: () => { setIsEditOpen(false); queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() }); },
-        onError: (err) => alert((err as any).error?.error || "Gagal memperbarui"),
-      }
-    );
+    updateMutation.mutate({ id: selectedUser.id, data: payload }, {
+      onSuccess: () => { setIsEditOpen(false); queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() }); },
+      onError: (err) => alert((err as any).error?.error || "Gagal memperbarui"),
+    });
   };
 
   const handleDelete = () => {
     if (!selectedUser) return;
-    deleteMutation.mutate(
-      { id: selectedUser.id },
-      {
-        onSuccess: () => { setIsDeleteOpen(false); queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() }); },
-        onError: (err) => alert((err as any).error?.error || "Gagal menghapus"),
-      }
-    );
+    deleteMutation.mutate({ id: selectedUser.id }, {
+      onSuccess: () => { setIsDeleteOpen(false); queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() }); },
+      onError: (err) => alert((err as any).error?.error || "Gagal menghapus"),
+    });
   };
 
-  const roleBadgeCls: Record<string, string> = { admin: "admin", operator: "operator", merchant: "menunggu" };
-
   const UserForm = ({ onSubmit, isPending, label, isEdit }: any) => (
-    <form onSubmit={onSubmit}>
-      <div className="field">
-        <label>Username</label>
-        <input
-          type="text"
+    <form onSubmit={onSubmit} className="space-y-4 pt-1">
+      <div className="space-y-1.5">
+        <Label>Username</Label>
+        <Input
           value={formData.username}
           onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, "") })}
-          className="mono"
+          className="font-mono"
           required
+          placeholder="username"
         />
       </div>
-      <div className="field">
-        <label>{isEdit ? "Password Baru (kosongkan jika tidak diubah)" : "Password"}</label>
-        <input
+      <div className="space-y-1.5">
+        <Label>{isEdit ? "Password Baru (kosongkan jika tidak diubah)" : "Password"}</Label>
+        <Input
           type="password"
           value={formData.password}
           onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           required={!isEdit}
+          placeholder={isEdit ? "••••••••" : "Password"}
         />
       </div>
-      <div style={{ marginBottom: 16 }}>
-        <Label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Role</Label>
+      <div className="space-y-1.5">
+        <Label>Role</Label>
         <Select value={formData.role} onValueChange={(val: any) => setFormData({ ...formData, role: val })}>
           <SelectTrigger><SelectValue placeholder="Pilih role" /></SelectTrigger>
           <SelectContent>
@@ -143,8 +123,8 @@ export function Users() {
         </Select>
       </div>
       {formData.role === "merchant" && (
-        <div style={{ marginBottom: 16 }}>
-          <Label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Merchant Terkait</Label>
+        <div className="space-y-1.5">
+          <Label>Merchant Terkait</Label>
           <Select value={formData.merchantId.toString()} onValueChange={(val) => setFormData({ ...formData, merchantId: val })}>
             <SelectTrigger><SelectValue placeholder="Pilih merchant" /></SelectTrigger>
             <SelectContent>
@@ -165,76 +145,93 @@ export function Users() {
   );
 
   return (
-    <>
+    <div className="space-y-5">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <p className="muted" style={{ fontSize: 13 }}>Kelola akun dan hak akses pengguna</p>
-        <button className="btn sm" onClick={handleOpenCreate} style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
-          <Plus style={{ width: 15, height: 15 }} />
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">User Management</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Kelola akun dan hak akses pengguna.</p>
+        </div>
+        <Button size="sm" onClick={handleOpenCreate}>
+          <Plus size={14} className="mr-2" />
           Tambah User
-        </button>
+        </Button>
       </div>
 
       {/* Table */}
-      <div className="tablecard">
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Merchant</th>
-                <th>Dibuat</th>
-                <th style={{ textAlign: "right" }}>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card className="shadow-none overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-xs">Username</TableHead>
+                <TableHead className="text-xs">Role</TableHead>
+                <TableHead className="text-xs">Merchant</TableHead>
+                <TableHead className="text-xs">Dibuat</TableHead>
+                <TableHead className="text-xs text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {isLoading ? (
-                <tr><td colSpan={5} className="empty">Memuat data pengguna...</td></tr>
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                    Memuat data pengguna...
+                  </TableCell>
+                </TableRow>
               ) : users && users.length > 0 ? (
                 users.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <span className="uname mono">
-                        {user.role === "admin" && <Shield style={{ width: 12, height: 12 }} />}
+                  <TableRow key={user.id} className="text-sm">
+                    <TableCell>
+                      <span className="inline-flex items-center gap-2 font-mono font-medium">
+                        {user.role === "admin" && <Shield size={13} className="text-primary" />}
                         {user.username}
                       </span>
-                    </td>
-                    <td>
-                      <span className={`badge ${roleBadgeCls[user.role] || "operator"}`}>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-xs capitalize ${roleBadge[user.role] || ""}`}>
                         {user.role}
-                      </span>
-                    </td>
-                    <td className="muted" style={{ fontSize: 12 }}>
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {user.merchantId
                         ? merchants?.find((m) => m.id === user.merchantId)?.name || `ID: ${user.merchantId}`
-                        : "-"}
-                    </td>
-                    <td className="muted mono" style={{ fontSize: 12 }}>{formatDate(user.createdAt)}</td>
-                    <td style={{ textAlign: "right" }} className="act">
-                      <button className="abtn" onClick={() => handleOpenEdit(user)}>
-                        <Edit2 style={{ width: 11, height: 11 }} /> Edit
-                      </button>
-                      <button className="abtn del" onClick={() => handleOpenDelete(user)}>
-                        <Trash2 style={{ width: 11, height: 11 }} /> Hapus
-                      </button>
-                    </td>
-                  </tr>
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {formatDate(user.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => handleOpenEdit(user)}>
+                          <Edit2 size={11} className="mr-1" /> Edit
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleOpenDelete(user)}>
+                          <Trash2 size={11} className="mr-1" /> Hapus
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
                 ))
               ) : (
-                <tr><td colSpan={5} className="empty">Belum ada pengguna terdaftar.</td></tr>
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
+                    <UsersIcon size={32} className="mx-auto mb-2 opacity-30" />
+                    Belum ada pengguna terdaftar.
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
 
       {/* Create Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Tambah User Baru</DialogTitle>
-            <DialogDescription>Buat akun pengguna baru.</DialogDescription>
+            <DialogDescription>Buat akun pengguna baru dengan role yang sesuai.</DialogDescription>
           </DialogHeader>
           <UserForm onSubmit={handleCreate} isPending={createMutation.isPending} label="Buat Akun" isEdit={false} />
         </DialogContent>
@@ -245,7 +242,7 @@ export function Users() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Perbarui data untuk {selectedUser?.username}.</DialogDescription>
+            <DialogDescription>Perbarui data untuk <strong>{selectedUser?.username}</strong>.</DialogDescription>
           </DialogHeader>
           <UserForm onSubmit={handleUpdate} isPending={updateMutation.isPending} label="Simpan Perubahan" isEdit={true} />
         </DialogContent>
@@ -255,15 +252,15 @@ export function Users() {
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle style={{ color: "var(--red)", display: "flex", alignItems: "center", gap: 8 }}>
-              <AlertTriangle style={{ width: 20, height: 20 }} />
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle size={18} />
               Hapus Akun
             </DialogTitle>
             <DialogDescription>
               Yakin ingin menghapus akun <strong>{selectedUser?.username}</strong>? Pengguna akan kehilangan akses secara permanen.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter style={{ marginTop: 8 }}>
+          <DialogFooter className="mt-2">
             <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Batal</Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
@@ -272,6 +269,6 @@ export function Users() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

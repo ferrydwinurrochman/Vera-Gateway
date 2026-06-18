@@ -1,0 +1,38 @@
+I have pulled this repository from my GitHub. The backend API, multi-tenant logic, Flypay integration, and remote MySQL database connection using Drizzle are already working perfectly. DO NOT run any database migrations, schema pushes, or alter the backend logic.
+
+I have uploaded TWO critical reference items into this workspace:
+1. A `.zip` file containing the new frontend UI generated from v0.
+2. `index.php`, which contains the legacy source code.
+
+Your ONLY task is to completely replace the current frontend UI with the modern v0 UI, while ensuring EVERY SINGLE FUNCTION AND PAGE from `index.php` is fully restored and functional.
+
+Please execute the following steps strictly in order:
+
+1. EXTRACT & APPLY v0 UI (VISUALS)
+- Find the uploaded `.zip` file from v0 and unzip it.
+- Replace the entire current frontend UI (Tailwind configuration, CSS, layouts, components) with the files from this v0 zip. 
+- Use its exact glassmorphism design system. DO NOT use your internal design subagent to generate anything new.
+
+2. RESTORE ALL PAGES & MENUS (BASED ON index.php)
+Read `index.php` to understand the exact features and fields required. You MUST recreate and wire up ALL of the following routes using the new v0 UI components:
+- `/[merchantSlug]` : Public Top-up page (mirroring the PHP form, with 20-min cooldown logic).
+- `/login` : Operator/Admin login (must properly redirect to dashboard on success, and NOT redirect if unauthenticated).
+- `/dashboard` : Transaction table with TanStack Query polling (7s refetchInterval, no scroll jumping) and the 4 summary cards as seen in the PHP.
+- `/payment-link` : Create manual payment links.
+- `/report` : Summary tables with Date filters.
+- `/tools` : Export CSV/JSON, Disbursement form, and Reset Data button (Admin only).
+- `/users` : Manage operators/admins - Add, Edit, Reset Password (Admin only).
+- `/merchant` : Manage merchant data and slugs (Admin only).
+- `/provider` : Flypay API credentials & SMTP settings (Admin only).
+
+3. RESTORE THE DEVELOPER PANEL (`/developer`)
+- Route: `/developer`
+- Auth: Requires entering a `DEV_TOKEN` to access.
+- Features: A dashboard to view ALL merchants, add new merchants, delete merchants, and assign root admins to specific merchants.
+
+4. WIRE THE LOGIC (BASED ON index.php)
+- Look at `flypay_sign()` and `flypay_parse_callback()` in `index.php`. Ensure the Node.js backend perfectly mirrors this MD5 signature logic and webhook parsing.
+- Connect all buttons, forms, and tables in the new v0 UI to the existing backend API routes.
+- Ensure the `Logout` button actually calls the API, clears the session/cache, and forces a redirect to `/login`.
+
+Execute this now by first unzipping the v0 file, reading index.php for context, and applying the layouts.

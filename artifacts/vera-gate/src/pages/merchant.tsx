@@ -1,12 +1,16 @@
 import React, { useState } from "react";
 import {
-  useListMerchants,
-  getListMerchantsQueryKey,
-  useCreateMerchant,
-  useUpdateMerchant,
-  useDeleteMerchant,
+  useListMerchants, getListMerchantsQueryKey, useCreateMerchant, useUpdateMerchant, useDeleteMerchant,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Plus, Edit2, Trash2, Store, Loader2, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
 
 export function Merchant() {
   const queryClient = useQueryClient();
@@ -25,6 +29,7 @@ export function Merchant() {
     createMutation.mutate({ data: form }, {
       onSuccess: () => {
         setCreating(false);
+        setForm({ name: "", code: "", callbackUrl: "", isActive: true });
         setFlash({ msg: "Merchant berhasil ditambahkan.", type: "ok" });
         queryClient.invalidateQueries({ queryKey: getListMerchantsQueryKey() });
       },
@@ -62,99 +67,169 @@ export function Merchant() {
     setCreating(false);
   };
 
+  const cancelForm = () => { setCreating(false); setEditId(null); };
+
   return (
-    <>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Merchant</div>
-      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>
-        Tambah & kelola merchant yang terdaftar di gateway.
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Merchant</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Tambah & kelola merchant yang terdaftar di gateway.</p>
+        </div>
+        {!creating && !editId && (
+          <Button size="sm" onClick={() => { setCreating(true); setForm({ name: "", code: "", callbackUrl: "", isActive: true }); }}>
+            <Plus size={14} className="mr-2" />
+            Tambah Merchant
+          </Button>
+        )}
       </div>
 
-      {flash && <div className={`flash ${flash.type}`} style={{ marginBottom: 14 }}>{flash.msg}</div>}
-
-      {!creating && !editId && (
-        <div style={{ marginBottom: 12 }}>
-          <button className="btn sm" onClick={() => { setCreating(true); setForm({ name: "", code: "", callbackUrl: "", isActive: true }); }}>
-            + Tambah Merchant
+      {/* Alert */}
+      {flash && (
+        <div className={`px-4 py-3 rounded-lg border text-sm flex items-center justify-between ${
+          flash.type === "ok"
+            ? "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400"
+            : "bg-destructive/10 border-destructive/20 text-destructive"
+        }`}>
+          {flash.msg}
+          <button onClick={() => setFlash(null)} className="opacity-60 hover:opacity-100 ml-2">
+            <X size={14} />
           </button>
         </div>
       )}
 
+      {/* Form */}
       {(creating || editId) && (
-        <div className="tablecard" style={{ padding: "18px 20px", marginBottom: 16, maxWidth: 560 }}>
-          <div style={{ fontWeight: 800, marginBottom: 12 }}>{creating ? "+ Tambah Merchant Baru" : "Edit Merchant"}</div>
-          <form onSubmit={creating ? handleCreate : handleUpdate}>
-            <div className="field">
-              <label>Nama Merchant</label>
-              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="Nama merchant" />
-            </div>
-            <div className="field">
-              <label>Kode Internal</label>
-              <input
-                value={form.code}
-                onChange={e => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s/g, "") })}
-                className="mono"
-                required
-                placeholder="Kode unik"
-              />
-            </div>
-            <div className="field">
-              <label>Callback URL (Opsional)</label>
-              <input
-                type="url"
-                value={form.callbackUrl}
-                onChange={e => setForm({ ...form, callbackUrl: e.target.value })}
-                placeholder="https://merchant.com/api/callback"
-              />
-            </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, marginBottom: 16, cursor: "pointer" }}>
-              <input type="checkbox" checked={form.isActive} onChange={e => setForm({ ...form, isActive: e.target.checked })} />
-              Status Aktif
-            </label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn sm" type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {creating ? "Tambah" : "Simpan"}
-              </button>
-              <button className="btn sm alt" type="button" onClick={() => { setCreating(false); setEditId(null); }}>Batal</button>
-            </div>
-          </form>
-        </div>
+        <Card className="shadow-none border-primary/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Store size={15} />
+              {creating ? "Tambah Merchant Baru" : "Edit Merchant"}
+            </CardTitle>
+            <CardDescription>
+              {creating ? "Isi detail merchant baru." : "Perbarui informasi merchant."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={creating ? handleCreate : handleUpdate} className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="m-name">Nama Merchant</Label>
+                  <Input
+                    id="m-name"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                    placeholder="Nama merchant"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="m-code">Kode Internal</Label>
+                  <Input
+                    id="m-code"
+                    className="font-mono"
+                    value={form.code}
+                    onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s/g, "") })}
+                    required
+                    placeholder="KODE_UNIK"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="m-cb">Callback URL (Opsional)</Label>
+                <Input
+                  id="m-cb"
+                  type="url"
+                  className="font-mono"
+                  value={form.callbackUrl}
+                  onChange={(e) => setForm({ ...form, callbackUrl: e.target.value })}
+                  placeholder="https://merchant.com/api/callback"
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="m-active"
+                  checked={form.isActive}
+                  onCheckedChange={(v) => setForm({ ...form, isActive: v })}
+                />
+                <Label htmlFor="m-active" className="cursor-pointer font-normal">
+                  Status Aktif
+                </Label>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button type="submit" size="sm" disabled={createMutation.isPending || updateMutation.isPending}>
+                  {(createMutation.isPending || updateMutation.isPending) && (
+                    <Loader2 size={13} className="mr-2 animate-spin" />
+                  )}
+                  {creating ? "Tambah Merchant" : "Simpan Perubahan"}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={cancelForm}>Batal</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="tablecard">
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr><th>Kode</th><th>Nama</th><th>Callback URL</th><th>Status</th><th>Aksi</th></tr>
-            </thead>
-            <tbody>
+      {/* Table */}
+      <Card className="shadow-none overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-xs">Kode</TableHead>
+                <TableHead className="text-xs">Nama</TableHead>
+                <TableHead className="text-xs">Callback URL</TableHead>
+                <TableHead className="text-xs">Status</TableHead>
+                <TableHead className="text-xs text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {isLoading ? (
-                <tr><td colSpan={5}><div className="empty">Memuat...</div></td></tr>
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                    Memuat...
+                  </TableCell>
+                </TableRow>
               ) : !merchants || merchants.length === 0 ? (
-                <tr><td colSpan={5}><div className="empty">Belum ada merchant terdaftar.</div></td></tr>
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
+                    <Store size={32} className="mx-auto mb-2 opacity-30" />
+                    Belum ada merchant terdaftar.
+                  </TableCell>
+                </TableRow>
               ) : merchants.map((m: any) => (
-                <tr key={m.id}>
-                  <td className="mono" style={{ fontWeight: 700, fontSize: 12 }}>{m.code}</td>
-                  <td style={{ fontWeight: 600 }}>{m.name}</td>
-                  <td className="muted" style={{ fontSize: 12, maxWidth: 200 }}>
-                    <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {m.callbackUrl || "—"}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${m.isActive ? "aktif" : "nonaktif"}`}>
-                      {m.isActive ? "AKTIF" : "NONAKTIF"}
-                    </span>
-                  </td>
-                  <td className="act">
-                    <button className="abtn" onClick={() => openEdit(m)}>Edit</button>
-                    <button className="abtn del" onClick={() => handleDelete(m.id, m.name)}>Hapus</button>
-                  </td>
-                </tr>
+                <TableRow key={m.id} className="text-sm">
+                  <TableCell className="font-mono font-bold text-xs">{m.code}</TableCell>
+                  <TableCell className="font-medium">{m.name}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground max-w-48 truncate font-mono">
+                    {m.callbackUrl || "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${m.isActive ? "bg-green-500/10 text-green-600 border-green-500/20" : "bg-muted text-muted-foreground"}`}
+                    >
+                      {m.isActive ? "Aktif" : "Nonaktif"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => openEdit(m)}>
+                        <Edit2 size={11} className="mr-1" /> Edit
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-destructive hover:text-destructive" onClick={() => handleDelete(m.id, m.name)}>
+                        <Trash2 size={11} className="mr-1" /> Hapus
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
-    </>
+      </Card>
+    </div>
   );
 }

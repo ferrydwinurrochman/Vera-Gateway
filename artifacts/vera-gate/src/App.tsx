@@ -16,6 +16,7 @@ import { Tools } from "@/pages/tools";
 import { Merchant } from "@/pages/merchant";
 import { Users } from "@/pages/users";
 import { Provider } from "@/pages/provider";
+import { Developer } from "@/pages/developer";
 import { PublicTopup } from "@/pages/public-topup";
 
 const queryClient = new QueryClient();
@@ -24,8 +25,10 @@ function DarkModeManager() {
   useEffect(() => {
     const saved = localStorage.getItem("vg-theme");
     if (saved === "dark") {
+      document.documentElement.classList.add("dark");
       document.body.classList.add("dark");
     } else {
+      document.documentElement.classList.remove("dark");
       document.body.classList.remove("dark");
     }
   }, []);
@@ -88,6 +91,10 @@ function Router() {
 
       <Route path="/settings">
         <AdminLayout><Provider /></AdminLayout>
+      </Route>
+
+      <Route path="/developer">
+        <AdminLayout><Developer /></AdminLayout>
       </Route>
 
       <Route path="/:merchantSlug" component={PublicTopup} />

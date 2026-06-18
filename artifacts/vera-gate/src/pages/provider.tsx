@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useGetSettings, getGetSettingsQueryKey, useUpdateSettings } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, Settings, Zap, Copy, AlertTriangle, X } from "lucide-react";
 
-const CHANNELS = ["QRIS", "BCA", "BRI", "BNI", "MANDIRI", "DANA", "OVO", "GOPAY", "SHOPEEPAY"];
+const CHANNELS = ["QRIS","BCA","BRI","BNI","MANDIRI","DANA","OVO","GOPAY","SHOPEEPAY"];
 
 export function Provider() {
   const queryClient = useQueryClient();
@@ -22,7 +30,7 @@ export function Provider() {
 
   useEffect(() => {
     if (settings) {
-      setForm(prev => ({
+      setForm((prev) => ({
         ...prev,
         flypayAppId: settings.flypayAppId || "",
         flypayMode: (settings.flypayMode as any) || "sandbox",
@@ -44,7 +52,7 @@ export function Provider() {
     updateMutation.mutate({ data: payload }, {
       onSuccess: () => {
         setFlash({ msg: "Pengaturan provider tersimpan.", type: "ok" });
-        setForm(prev => ({ ...prev, flypaySecret: "" }));
+        setForm((prev) => ({ ...prev, flypaySecret: "" }));
         queryClient.invalidateQueries({ queryKey: getGetSettingsQueryKey() });
       },
       onError: (err: any) => setFlash({ msg: err?.error?.error || "Gagal menyimpan.", type: "err" }),
@@ -54,12 +62,12 @@ export function Provider() {
   const handleTestConnection = async () => {
     setTesting(true);
     setFlash(null);
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
     setFlash({
       msg: form.flypayMode === "live"
         ? "Mode LIVE aktif. Pastikan App ID & Secret Key benar, dan whitelist IP server di dashboard Flypay."
         : "Mode SANDBOX aktif. Koneksi ke Flypay tidak dites dalam mode sandbox.",
-      type: "ok"
+      type: "ok",
     });
     setTesting(false);
   };
@@ -68,121 +76,181 @@ export function Provider() {
     ? `${form.callbackBaseUrl}/api/transactions/callback`
     : "(isi Base Callback URL dulu)";
 
+  const copyCallback = () => {
+    if (form.callbackBaseUrl) navigator.clipboard?.writeText(callbackUrl);
+  };
+
   if (isLoading) {
-    return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 200, color: "var(--muted)" }}>Memuat...</div>;
+    return (
+      <div className="flex items-center justify-center h-52 text-muted-foreground">
+        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        Memuat pengaturan...
+      </div>
+    );
   }
 
   return (
-    <>
-      <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Pengaturan Provider — Flypay</div>
-      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>
-        Kredensial API Flypay & konfigurasi mode operasi.
+    <div className="space-y-5 max-w-2xl">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-bold tracking-tight">Pengaturan Provider — Flypay</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Kredensial API Flypay & konfigurasi mode operasi.</p>
       </div>
 
-      {flash && <div className={`flash ${flash.type}`} style={{ marginBottom: 14 }}>{flash.msg}</div>}
-
-      <div className="tablecard" style={{ padding: 22, maxWidth: 680, marginBottom: 16 }}>
-        <form onSubmit={handleSave}>
-          <div className="field">
-            <label>Channel Deposit Default</label>
-            <select value={form.defaultChannel} onChange={e => setForm({ ...form, defaultChannel: e.target.value })}>
-              {CHANNELS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <small style={{ fontSize: 12, color: "var(--muted)", marginTop: 4, display: "block" }}>
-              Pilih <b>QRIS</b> sebagai default (mendukung semua e-wallet & m-banking).
-            </small>
-          </div>
-
-          <div className="field">
-            <label>Application ID</label>
-            <input
-              type="text"
-              className="mono"
-              value={form.flypayAppId}
-              onChange={e => setForm({ ...form, flypayAppId: e.target.value })}
-              required
-              placeholder="App ID dari Flypay"
-            />
-          </div>
-
-          <div className="field">
-            <label>Secret Key <small style={{ fontWeight: 400, color: "var(--muted)" }}>(kosongkan jika tidak diubah)</small></label>
-            <input
-              type="password"
-              className="mono"
-              value={form.flypaySecret}
-              onChange={e => setForm({ ...form, flypaySecret: e.target.value })}
-              placeholder="••••••••••••••••••••••••"
-            />
-          </div>
-
-          <div className="field">
-            <label>Base Callback URL</label>
-            <input
-              type="url"
-              className="mono"
-              value={form.callbackBaseUrl}
-              onChange={e => setForm({ ...form, callbackBaseUrl: e.target.value })}
-              placeholder="https://domain-kamu.com"
-            />
-            <small style={{ fontSize: 12, color: "var(--muted)", marginTop: 4, display: "block" }}>
-              Target webhook dari Flypay.
-            </small>
-          </div>
-
-          <div className="field">
-            <label>Cooldown Anti-Spam (Menit)</label>
-            <input
-              type="number"
-              min="1"
-              max="60"
-              className="mono"
-              value={form.cooldownMinutes}
-              onChange={e => setForm({ ...form, cooldownMinutes: parseInt(e.target.value) || 20 })}
-              required
-            />
-            <small style={{ fontSize: 12, color: "var(--muted)", marginTop: 4, display: "block" }}>
-              Waktu tunggu sebelum customer yang sama bisa generate QRIS baru saat masih MENUNGGU.
-            </small>
-          </div>
-
-          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 600, margin: "12px 0 16px", cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={form.flypayMode === "live"}
-              onChange={e => setForm({ ...form, flypayMode: e.target.checked ? "live" : "sandbox" })}
-              style={{ width: 18, height: 18 }}
-            />
-            Mode LIVE <span style={{ fontWeight: 400, fontSize: 12, color: "var(--muted)" }}>
-              (Aktif = Pakai Flypay | Mati = Mode Sandbox)
-            </span>
-          </label>
-          {form.flypayMode === "live" && (
-            <div className="flash err" style={{ marginBottom: 14 }}>⚠ Mode LIVE aktif — transaksi sungguhan akan diproses</div>
-          )}
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button className="btn" type="submit" name="simpan_provider" disabled={updateMutation.isPending}>
-              {updateMutation.isPending ? "Menyimpan..." : "Simpan Pengaturan"}
-            </button>
-            <button className="btn alt" type="button" onClick={handleTestConnection} disabled={testing}>
-              {testing ? "Mengetes..." : "Tes Koneksi ke Flypay"}
-            </button>
-          </div>
-        </form>
-
-        <div style={{ marginTop: 18, borderTop: "1px dashed var(--line)", paddingTop: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 6 }}>
-            URL Webhook / Callback
-          </div>
-          <div className="mono" style={{ fontSize: 12, background: "var(--blue-50)", color: "var(--blue)", padding: "10px 12px", borderRadius: 10, wordBreak: "break-all" }}>
-            {callbackUrl}
-          </div>
-          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
-            Pastikan URL ini sudah kamu daftarkan ke dashboard Flypay agar status deposit/withdraw berubah otomatis.
-          </p>
+      {/* Alert */}
+      {flash && (
+        <div className={`px-4 py-3 rounded-lg border text-sm flex items-center justify-between ${
+          flash.type === "ok"
+            ? "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400"
+            : "bg-destructive/10 border-destructive/20 text-destructive"
+        }`}>
+          {flash.msg}
+          <button onClick={() => setFlash(null)} className="opacity-60 hover:opacity-100 ml-2">
+            <X size={14} />
+          </button>
         </div>
-      </div>
-    </>
+      )}
+
+      {/* Live mode warning */}
+      {form.flypayMode === "live" && (
+        <div className="px-4 py-3 rounded-lg border bg-yellow-500/10 border-yellow-500/20 text-yellow-700 dark:text-yellow-400 text-sm flex items-center gap-2">
+          <AlertTriangle size={15} className="flex-shrink-0" />
+          Mode LIVE aktif — transaksi sungguhan akan diproses.
+        </div>
+      )}
+
+      <Card className="shadow-none">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings size={15} />
+            Konfigurasi Flypay
+          </CardTitle>
+          <CardDescription>Isi kredensial dari dashboard Flypay Anda.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSave} className="space-y-5">
+            {/* Channel */}
+            <div className="space-y-1.5">
+              <Label>Channel Deposit Default</Label>
+              <Select value={form.defaultChannel} onValueChange={(v) => setForm({ ...form, defaultChannel: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHANNELS.map((c) => (<SelectItem key={c} value={c}>{c}</SelectItem>))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Pilih <strong>QRIS</strong> sebagai default (mendukung semua e-wallet & m-banking).</p>
+            </div>
+
+            <Separator />
+
+            {/* App ID */}
+            <div className="space-y-1.5">
+              <Label>Application ID</Label>
+              <Input
+                className="font-mono"
+                value={form.flypayAppId}
+                onChange={(e) => setForm({ ...form, flypayAppId: e.target.value })}
+                required
+                placeholder="App ID dari Flypay"
+              />
+            </div>
+
+            {/* Secret Key */}
+            <div className="space-y-1.5">
+              <Label>
+                Secret Key{" "}
+                <span className="font-normal text-muted-foreground text-xs">(kosongkan jika tidak diubah)</span>
+              </Label>
+              <Input
+                type="password"
+                className="font-mono"
+                value={form.flypaySecret}
+                onChange={(e) => setForm({ ...form, flypaySecret: e.target.value })}
+                placeholder="••••••••••••••••••••••••"
+              />
+            </div>
+
+            {/* Callback URL */}
+            <div className="space-y-1.5">
+              <Label>Base Callback URL</Label>
+              <Input
+                type="url"
+                className="font-mono"
+                value={form.callbackBaseUrl}
+                onChange={(e) => setForm({ ...form, callbackBaseUrl: e.target.value })}
+                placeholder="https://domain-kamu.com"
+              />
+              <p className="text-xs text-muted-foreground">Target webhook dari Flypay.</p>
+            </div>
+
+            {/* Cooldown */}
+            <div className="space-y-1.5">
+              <Label>Cooldown Anti-Spam (Menit)</Label>
+              <Input
+                type="number"
+                min="1"
+                max="60"
+                className="font-mono w-32"
+                value={form.cooldownMinutes}
+                onChange={(e) => setForm({ ...form, cooldownMinutes: parseInt(e.target.value) || 20 })}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Waktu tunggu sebelum customer yang sama bisa generate QRIS baru saat masih MENUNGGU.
+              </p>
+            </div>
+
+            {/* Live mode toggle */}
+            <div className="flex items-center gap-3 py-1">
+              <Switch
+                id="live-mode"
+                checked={form.flypayMode === "live"}
+                onCheckedChange={(v) => setForm({ ...form, flypayMode: v ? "live" : "sandbox" })}
+              />
+              <div>
+                <Label htmlFor="live-mode" className="cursor-pointer">Mode LIVE</Label>
+                <p className="text-xs text-muted-foreground">Aktif = Pakai Flypay live | Mati = Mode sandbox</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Simpan Pengaturan
+              </Button>
+              <Button type="button" variant="outline" onClick={handleTestConnection} disabled={testing}>
+                {testing ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Mengetes...</>
+                ) : (
+                  <><Zap size={14} className="mr-2" />Tes Koneksi ke Flypay</>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Webhook URL */}
+      <Card className="shadow-none">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">URL Webhook / Callback</CardTitle>
+          <CardDescription>Daftarkan URL ini ke dashboard Flypay agar status deposit/withdraw berubah otomatis.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 font-mono text-xs bg-muted rounded-lg px-3 py-2.5 break-all text-primary">
+              {callbackUrl}
+            </code>
+            {form.callbackBaseUrl && (
+              <Button variant="ghost" size="icon" className="flex-shrink-0 h-9 w-9" onClick={copyCallback}>
+                <Copy size={14} />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

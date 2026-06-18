@@ -1,14 +1,20 @@
 import React, { useState, useMemo } from "react";
 import { useListTransactions, getListTransactionsQueryKey } from "@workspace/api-client-react";
 import { formatRupiah } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Printer, TrendingUp, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type GroupMode = "hari" | "minggu" | "bulan" | "tahun" | "custom";
 
 const LABELS: Record<GroupMode, string> = {
   hari: "Harian", minggu: "Mingguan", bulan: "Bulanan", tahun: "Tahunan", custom: "Custom",
 };
-
-const BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
 function getKey(mode: GroupMode, date: Date): { key: string; label: string } {
   const grp = mode === "custom" ? "hari" : mode;
@@ -21,9 +27,7 @@ function getKey(mode: GroupMode, date: Date): { key: string; label: string } {
     const week = Math.ceil(((date.getTime() - firstDay.getTime()) / 86400000 + firstDay.getDay() + 1) / 7);
     return { key: `${date.getFullYear()}-W${String(week).padStart(2, "0")}`, label: `Pekan ${week} / ${date.getFullYear()}` };
   }
-  if (grp === "tahun") {
-    return { key: String(date.getFullYear()), label: String(date.getFullYear()) };
-  }
+  if (grp === "tahun") return { key: String(date.getFullYear()), label: String(date.getFullYear()) };
   const m = date.getMonth() + 1, y = date.getFullYear();
   return { key: `${y}-${String(m).padStart(2, "0")}`, label: `${BULAN[m - 1]} ${y}` };
 }
@@ -41,13 +45,8 @@ export function Report() {
   else if (mode === "tahun") { qp.startDate = `${new Date().getFullYear()}-01-01`; qp.endDate = new Date().toISOString().slice(0, 10); }
   else if (mode === "custom") { if (startDate) qp.startDate = startDate; if (endDate) qp.endDate = endDate; }
 
-  const { data, isLoading } = useListTransactions(qp, {
-    query: { queryKey: getListTransactionsQueryKey(qp) },
-  });
-
-  const { data: allData } = useListTransactions({ limit: 1000 }, {
-    query: { queryKey: getListTransactionsQueryKey({ limit: 1000 }) },
-  });
+  const { data, isLoading } = useListTransactions(qp, { query: { queryKey: getListTransactionsQueryKey(qp) } });
+  const { data: allData } = useListTransactions({ limit: 1000 }, { query: { queryKey: getListTransactionsQueryKey({ limit: 1000 }) } });
 
   const rows = data?.data ?? [];
   const allRows = allData?.data ?? [];
@@ -112,98 +111,141 @@ export function Report() {
     w.document.close();
   };
 
+  const statCards = [
+    { label: "Total", value: summary.total, icon: TrendingUp, color: "text-primary", bg: "bg-primary/10" },
+    { label: "Sukses", value: summary.sukses, icon: CheckCircle2, color: "text-green-500", bg: "bg-green-500/10" },
+    { label: "Nominal Sukses", value: formatRupiah(summary.sukses_amt), icon: TrendingUp, color: "text-primary", bg: "bg-primary/10", mono: true },
+    { label: "Menunggu / Gagal", value: `${summary.menunggu} / ${summary.gagal}`, icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10" },
+  ];
+
   return (
-    <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 4 }}>
-        <div style={{ fontSize: 20, fontWeight: 800 }}>Report</div>
-        <button className="btn sm" onClick={handlePrint}>Cetak / PDF</button>
-      </div>
-      <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 18 }}>
-        Ringkasan transaksi. Pilih periode untuk rekap per hari, minggu, bulan, tahun, atau rentang tanggal sendiri.
-      </div>
-
-      <div className="summary">
-        <div className="sc"><div className="l">Total Transaksi</div><div className="v" style={{ fontSize: 20 }}>{summary.total}</div></div>
-        <div className="sc"><div className="l">Sukses</div><div className="v" style={{ fontSize: 20 }}>{summary.sukses}</div></div>
-        <div className="sc"><div className="l">Nominal Sukses</div><div className="v" style={{ fontSize: 20 }}>{formatRupiah(summary.sukses_amt)}</div></div>
-        <div className="sc"><div className="l">Menunggu / Gagal</div><div className="v" style={{ fontSize: 20 }}>{summary.menunggu} / {summary.gagal}</div></div>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Report</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Ringkasan transaksi berdasarkan periode.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handlePrint}>
+          <Printer size={14} className="mr-2" />
+          Cetak / PDF
+        </Button>
       </div>
 
-      <div className="apis" style={{ marginBottom: 14 }}>
-        {(Object.keys(LABELS) as GroupMode[]).map(k => (
-          <a key={k} className={`apitab${mode === k ? " on" : ""}`} href="#" onClick={e => { e.preventDefault(); setMode(k); }}>
-            <span className="dot"></span>{LABELS[k]}
-          </a>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {statCards.map((s) => (
+          <Card key={s.label} className="shadow-none">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{s.label}</CardTitle>
+                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", s.bg)}>
+                  <s.icon size={14} className={s.color} />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className={cn("text-xl font-bold tracking-tight", (s as any).mono && "font-mono text-base")}>
+                {s.value}
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
+      {/* Period tabs */}
+      <Tabs value={mode} onValueChange={(v) => setMode(v as GroupMode)}>
+        <TabsList className="h-9">
+          {(Object.keys(LABELS) as GroupMode[]).map((k) => (
+            <TabsTrigger key={k} value={k} className="text-xs px-3">
+              {LABELS[k]}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
       {mode === "custom" && (
-        <div className="tablecard" style={{ padding: "16px 18px", marginBottom: 14 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
-            <div className="field" style={{ margin: 0 }}>
-              <label>Dari tanggal</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+        <Card className="shadow-none">
+          <CardContent className="px-4 py-3">
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Dari tanggal</p>
+                <Input type="date" className="h-9 w-44 text-sm" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground">Sampai tanggal</p>
+                <Input type="date" className="h-9 w-44 text-sm" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </div>
             </div>
-            <div className="field" style={{ margin: 0 }}>
-              <label>Sampai tanggal</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="tablecard">
-        <div style={{ padding: "14px 16px", fontWeight: 800, fontSize: 14, borderBottom: "1px solid var(--line)" }}>
-          Ringkasan {LABELS[mode]}{rangetxt}
-        </div>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr><th>Periode</th><th>Transaksi</th><th>Sukses</th><th>Nominal Sukses</th><th>Menunggu</th><th>Gagal</th></tr>
-            </thead>
-            <tbody>
+      {/* Summary table */}
+      <Card className="shadow-none overflow-hidden">
+        <CardHeader className="pb-0 pt-4 px-4 border-b border-border">
+          <CardTitle className="text-sm pb-3">Ringkasan {LABELS[mode]}{rangetxt}</CardTitle>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-xs">Periode</TableHead>
+                <TableHead className="text-xs">Transaksi</TableHead>
+                <TableHead className="text-xs">Sukses</TableHead>
+                <TableHead className="text-xs">Nominal Sukses</TableHead>
+                <TableHead className="text-xs">Menunggu</TableHead>
+                <TableHead className="text-xs">Gagal</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {isLoading ? (
-                <tr><td colSpan={6}><div className="empty">Memuat...</div></td></tr>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Memuat...</TableCell></TableRow>
               ) : buckets.length === 0 ? (
-                <tr><td colSpan={6}><div className="empty">Belum ada transaksi pada periode ini.</div></td></tr>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Belum ada transaksi pada periode ini.</TableCell></TableRow>
               ) : buckets.map((b, i) => (
-                <tr key={i}>
-                  <td style={{ fontWeight: 700 }}>{b.label}</td>
-                  <td>{b.total}</td>
-                  <td>{b.sukses}</td>
-                  <td className="amt">{formatRupiah(b.amt)}</td>
-                  <td>{b.menunggu}</td>
-                  <td>{b.gagal}</td>
-                </tr>
+                <TableRow key={i} className="text-sm">
+                  <TableCell className="font-semibold">{b.label}</TableCell>
+                  <TableCell>{b.total}</TableCell>
+                  <TableCell className="text-green-600 font-medium">{b.sukses}</TableCell>
+                  <TableCell className="font-mono font-semibold">{formatRupiah(b.amt)}</TableCell>
+                  <TableCell className="text-yellow-600">{b.menunggu}</TableCell>
+                  <TableCell className="text-destructive">{b.gagal}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
+      </Card>
 
-      <div className="tablecard" style={{ marginTop: 16 }}>
-        <div style={{ padding: "14px 16px", fontWeight: 800, fontSize: 14, borderBottom: "1px solid var(--line)" }}>
-          Per Metode Bayar (sukses, semua waktu)
-        </div>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr><th>Metode</th><th>Transaksi</th><th>Nominal</th></tr>
-            </thead>
-            <tbody>
+      {/* Per-method table */}
+      <Card className="shadow-none overflow-hidden">
+        <CardHeader className="pb-0 pt-4 px-4 border-b border-border">
+          <CardTitle className="text-sm pb-3">Per Metode Bayar (sukses, semua waktu)</CardTitle>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-xs">Metode</TableHead>
+                <TableHead className="text-xs">Transaksi</TableHead>
+                <TableHead className="text-xs">Nominal</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {perMethod.length === 0 ? (
-                <tr><td colSpan={3}><div className="empty">Belum ada pembayaran sukses.</div></td></tr>
+                <TableRow><TableCell colSpan={3} className="text-center py-8 text-sm text-muted-foreground">Belum ada pembayaran sukses.</TableCell></TableRow>
               ) : perMethod.map((m, i) => (
-                <tr key={i}>
-                  <td><span className="met"><span className="d bank"></span>{m.nama}</span></td>
-                  <td>{m.n}</td>
-                  <td className="amt">{formatRupiah(m.amt)}</td>
-                </tr>
+                <TableRow key={i} className="text-sm">
+                  <TableCell className="font-medium">{m.nama}</TableCell>
+                  <TableCell>{m.n}</TableCell>
+                  <TableCell className="font-mono font-semibold">{formatRupiah(m.amt)}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
-      </div>
-    </>
+      </Card>
+    </div>
   );
 }
