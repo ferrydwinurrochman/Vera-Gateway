@@ -193,6 +193,9 @@ export function PublicTopup() {
   return (
     <div className="dark text-foreground bg-background min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-5">
+        <div className="flex justify-center pt-2 pb-1">
+          <img src="/logo.png" alt="VERA GATE" className="h-10 w-auto object-contain" />
+        </div>
         <div className="vera-card p-4 flex items-center gap-3" style={{ borderColor: "rgba(0,102,204,0.3)" }}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "rgba(0,102,204,0.15)" }}>
             <Store className="w-5 h-5" style={{ color: "var(--primary)" }} />

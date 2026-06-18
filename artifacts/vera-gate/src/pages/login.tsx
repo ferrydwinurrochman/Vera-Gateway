@@ -60,10 +60,7 @@ export function Login() {
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center shadow-lg mb-4">
-            <ShieldCheck className="w-7 h-7 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">VERA GATE</h1>
+          <img src="/logo.png" alt="VERA GATE" className="h-20 w-auto object-contain mb-2" />
           <p className="text-sm text-muted-foreground mt-1">Payment Gateway Dashboard</p>
         </div>
 

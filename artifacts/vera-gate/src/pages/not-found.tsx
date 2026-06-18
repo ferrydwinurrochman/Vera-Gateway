@@ -9,6 +9,7 @@ export default function NotFound() {
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-sm shadow-sm text-center">
         <CardContent className="pt-8 pb-8">
+          <img src="/logo.png" alt="VERA GATE" className="h-12 w-auto object-contain mx-auto mb-5" />
           <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-7 w-7 text-destructive" />
           </div>

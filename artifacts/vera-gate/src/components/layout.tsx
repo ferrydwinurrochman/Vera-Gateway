@@ -123,14 +123,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       >
         {/* Logo */}
         <div className="p-5 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-sm">
-              <span className="text-primary-foreground text-sm font-bold tracking-tight">VG</span>
-            </div>
-            <div>
-              <p className="text-sm font-bold text-sidebar-foreground tracking-tight">VERA GATE</p>
-              <p className="text-xs text-muted-foreground">Payment Gateway</p>
-            </div>
+          <div className="flex items-center justify-center">
+            <img src="/logo.png" alt="VERA GATE" className="h-10 w-auto object-contain" />
           </div>
         </div>
 
@@ -201,10 +195,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="flex-1 lg:hidden flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-xs font-bold">VG</span>
-            </div>
-            <span className="font-semibold text-sm">VERA GATE</span>
+            <img src="/logo.png" alt="VERA GATE" className="h-7 w-auto object-contain" />
           </div>
 
           <div className="hidden lg:block flex-1" />

@@ -20,12 +20,11 @@ import {
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
 
-const DEV_TOKEN = import.meta.env.VITE_DEV_TOKEN || "";
-
 export function Developer() {
   const [token, setToken] = useState("");
   const [authed, setAuthed] = useState(false);
   const [tokenError, setTokenError] = useState("");
+  const [verifying, setVerifying] = useState(false);
 
   const queryClient = useQueryClient();
   const { data: merchants, isLoading } = useListMerchants({
@@ -42,13 +41,26 @@ export function Developer() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: number; name: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<number | null>(null);
 
-  const handleAuth = (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!DEV_TOKEN || token === DEV_TOKEN) {
-      setAuthed(true);
-      setTokenError("");
-    } else {
-      setTokenError("Token tidak valid.");
+    setTokenError("");
+    setVerifying(true);
+    try {
+      const res = await fetch(`${BASE}/api/dev/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const body = await res.json();
+      if (res.ok && body.ok) {
+        setAuthed(true);
+      } else {
+        setTokenError(body.error || "Kode tidak valid atau sudah kedaluwarsa.");
+      }
+    } catch {
+      setTokenError("Gagal menghubungi server. Coba lagi.");
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -118,32 +130,33 @@ export function Developer() {
               </div>
               <CardTitle className="text-base">Developer Panel</CardTitle>
             </div>
-            <CardDescription>Panel ini dilindungi token developer. Masukkan DEV_TOKEN untuk melanjutkan.</CardDescription>
+            <CardDescription>Panel ini dilindungi TOTP. Masukkan kode 6 digit dari Google Authenticator.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAuth} className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="dev-token">DEV_TOKEN</Label>
+                <Label htmlFor="dev-token">Kode Authenticator</Label>
                 <Input
                   id="dev-token"
-                  type="password"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
                   value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  placeholder="••••••••••••••"
-                  className="font-mono"
+                  onChange={(e) => setToken(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="Enter 6-digit Authenticator Code"
+                  className="font-mono tracking-widest text-center text-lg"
                   autoFocus
+                  autoComplete="one-time-code"
                 />
               </div>
               {tokenError && (
                 <p className="text-xs text-destructive">{tokenError}</p>
               )}
-              <Button type="submit" className="w-full">Masuk Developer Panel</Button>
+              <Button type="submit" className="w-full" disabled={verifying || token.length !== 6}>
+                {verifying ? <><Loader2 size={14} className="mr-2 animate-spin" />Memverifikasi...</> : "Masuk Developer Panel"}
+              </Button>
             </form>
-            {!DEV_TOKEN && (
-              <p className="text-xs text-muted-foreground mt-3 text-center">
-                Set env var <code className="font-mono bg-muted px-1 rounded">VITE_DEV_TOKEN</code> untuk mengaktifkan proteksi.
-              </p>
-            )}
           </CardContent>
         </Card>
       </div>
