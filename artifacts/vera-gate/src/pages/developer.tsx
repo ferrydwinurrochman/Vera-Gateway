@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import {
   useListMerchants, getListMerchantsQueryKey, useCreateMerchant, useUpdateMerchant, useDeleteMerchant,
+  useListUsers, getListUsersQueryKey,
+  useGetDashboardSummary, getGetDashboardSummaryQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +12,23 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { formatRupiah, formatDate } from "@/lib/utils";
 import {
   Code2, Plus, Edit2, Trash2, Store, Loader2, Key, Terminal, AlertTriangle, X, Copy, Check,
+  Users as UsersIcon, TrendingUp, Activity,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const BASE = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+
+const roleBadge: Record<string, string> = {
+  admin: "bg-primary/10 text-primary border-primary/20",
+  operator: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  merchant: "bg-purple-500/10 text-purple-600 border-purple-500/20",
+};
 
 export function Developer() {
   const [token, setToken] = useState("");
@@ -27,9 +37,18 @@ export function Developer() {
   const [verifying, setVerifying] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: merchants, isLoading } = useListMerchants({
+
+  const { data: merchants, isLoading: merchantsLoading } = useListMerchants({
     query: { queryKey: getListMerchantsQueryKey(), enabled: authed },
   });
+  const { data: users, isLoading: usersLoading } = useListUsers({
+    query: { queryKey: getListUsersQueryKey(), enabled: authed },
+  });
+  const { data: summary } = useGetDashboardSummary(
+    { period: "today" },
+    { query: { queryKey: getGetDashboardSummaryQueryKey({ period: "today" }), enabled: authed, refetchInterval: 30000 } }
+  );
+
   const createMutation = useCreateMerchant();
   const updateMutation = useUpdateMerchant();
   const deleteMutation = useDeleteMerchant();
@@ -118,7 +137,7 @@ export function Developer() {
 
   const cancelForm = () => { setCreating(false); setEditId(null); };
 
-  /* ---- DEV TOKEN GATE ---- */
+  /* ---- TOTP GATE ---- */
   if (!authed) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -163,6 +182,13 @@ export function Developer() {
     );
   }
 
+  /* ---- derive stats ---- */
+  const merchantCount = merchants?.length ?? 0;
+  const activeMerchantCount = merchants?.filter((m: any) => m.isActive).length ?? 0;
+  const userCount = users?.length ?? 0;
+  const todayAmount = summary?.todayAmount ?? 0;
+  const suksesCount = summary?.byStatus?.find((s: any) => s.status === "SUKSES")?.count ?? 0;
+
   /* ---- MAIN DEVELOPER PANEL ---- */
   return (
     <div className="space-y-5">
@@ -172,10 +198,10 @@ export function Developer() {
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold tracking-tight">Developer Panel</h1>
             <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
-              DEV
+              SUPER ADMIN
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground mt-0.5">Manajemen semua merchant & konfigurasi sistem.</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Live data dari database MySQL — manajemen penuh semua merchant & user.</p>
         </div>
         {!creating && !editId && (
           <Button size="sm" onClick={() => { setCreating(true); setForm({ name: "", code: "", callbackUrl: "", isActive: true }); }}>
@@ -185,7 +211,7 @@ export function Developer() {
         )}
       </div>
 
-      {/* Alert */}
+      {/* Flash */}
       {flash && (
         <div className={`px-4 py-3 rounded-lg border text-sm flex items-center justify-between ${
           flash.type === "ok"
@@ -199,7 +225,32 @@ export function Developer() {
         </div>
       )}
 
-      {/* API Endpoints Reference */}
+      {/* System Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Total Merchant", value: merchantCount, sub: `${activeMerchantCount} aktif`, icon: Store, color: "text-primary", bg: "bg-primary/10" },
+          { label: "Total User", value: userCount, sub: "terdaftar", icon: UsersIcon, color: "text-blue-500", bg: "bg-blue-500/10" },
+          { label: "Sukses Hari Ini", value: suksesCount, sub: "transaksi", icon: Activity, color: "text-green-500", bg: "bg-green-500/10" },
+          { label: "Nominal Hari Ini", value: formatRupiah(todayAmount), sub: "total sukses", icon: TrendingUp, color: "text-yellow-600", bg: "bg-yellow-500/10", mono: true },
+        ].map((stat) => (
+          <Card key={stat.label} className="shadow-none">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xs font-medium text-muted-foreground">{stat.label}</CardTitle>
+                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", stat.bg)}>
+                  <stat.icon size={14} className={stat.color} />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className={cn("text-xl font-bold tracking-tight", stat.mono && "font-mono text-sm")}>{stat.value}</div>
+              <p className="text-xs text-muted-foreground mt-0.5">{stat.sub}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* API Quick Reference */}
       <Card className="shadow-none bg-muted/40">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
@@ -269,10 +320,14 @@ export function Developer() {
         </Card>
       )}
 
-      {/* Merchant Table */}
+      {/* Merchants Table */}
       <Card className="shadow-none overflow-hidden">
-        <CardHeader className="pb-0 pt-4 px-4 border-b border-border">
-          <CardTitle className="text-sm pb-3">Semua Merchant</CardTitle>
+        <CardHeader className="pb-0 pt-4 px-4 border-b border-border flex flex-row items-center justify-between">
+          <CardTitle className="text-sm pb-3 flex items-center gap-2">
+            <Store size={13} className="text-muted-foreground" />
+            Semua Merchant
+            <Badge variant="outline" className="text-xs ml-1">{merchantCount}</Badge>
+          </CardTitle>
         </CardHeader>
         <div className="overflow-x-auto">
           <Table>
@@ -288,17 +343,17 @@ export function Developer() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
+              {merchantsLoading ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-10 text-sm text-muted-foreground">
                     <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                    Memuat...
+                    Memuat data merchant...
                   </TableCell>
                 </TableRow>
               ) : !merchants || merchants.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-10 text-sm text-muted-foreground">
-                    Belum ada merchant.
+                    Belum ada merchant di database.
                   </TableCell>
                 </TableRow>
               ) : merchants.map((m: any) => (
@@ -334,6 +389,66 @@ export function Developer() {
                         <Trash2 size={11} className="mr-1" /> Hapus
                       </Button>
                     </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+      {/* Users Table */}
+      <Card className="shadow-none overflow-hidden">
+        <CardHeader className="pb-0 pt-4 px-4 border-b border-border">
+          <CardTitle className="text-sm pb-3 flex items-center gap-2">
+            <UsersIcon size={13} className="text-muted-foreground" />
+            Semua User
+            <Badge variant="outline" className="text-xs ml-1">{userCount}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30 hover:bg-muted/30">
+                <TableHead className="text-xs">ID</TableHead>
+                <TableHead className="text-xs">Username</TableHead>
+                <TableHead className="text-xs">Role</TableHead>
+                <TableHead className="text-xs">Merchant</TableHead>
+                <TableHead className="text-xs">Dibuat</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {usersLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                    Memuat data user...
+                  </TableCell>
+                </TableRow>
+              ) : !users || users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-sm text-muted-foreground">
+                    Belum ada user di database.
+                  </TableCell>
+                </TableRow>
+              ) : users.map((u: any) => (
+                <TableRow key={u.id} className="text-sm">
+                  <TableCell className="font-mono text-xs text-muted-foreground">{u.id}</TableCell>
+                  <TableCell className="font-semibold">{u.username}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`text-xs capitalize ${roleBadge[u.role] ?? "bg-muted text-muted-foreground"}`}>
+                      {u.role}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {u.merchantId ? (
+                      <span className="font-mono">#{u.merchantId}</span>
+                    ) : (
+                      <span className="italic">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground font-mono">
+                    {u.createdAt ? formatDate(u.createdAt) : "—"}
                   </TableCell>
                 </TableRow>
               ))}

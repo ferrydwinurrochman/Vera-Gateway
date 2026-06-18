@@ -202,9 +202,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground hidden sm:block">{user?.username}</span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary capitalize border border-primary/20">
-              {user?.role}
-            </span>
+            {user?.role && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary capitalize border border-primary/20">
+                {user.role}
+              </span>
+            )}
           </div>
         </header>
 

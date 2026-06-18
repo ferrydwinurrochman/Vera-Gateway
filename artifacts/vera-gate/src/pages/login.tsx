@@ -57,11 +57,11 @@ export function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-xs">
         {/* Brand */}
-        <div className="flex flex-col items-center mb-8">
-          <img src="/logo.png" alt="VERA GATE" className="h-20 w-auto object-contain mb-2" />
-          <p className="text-sm text-muted-foreground mt-1">Payment Gateway Dashboard</p>
+        <div className="flex flex-col items-center mb-6">
+          <img src="/logo.png" alt="VERA GATE" className="h-14 w-auto object-contain mb-1" />
+          <p className="text-xs text-muted-foreground">Payment Gateway Dashboard</p>
         </div>
 
         <Card className="shadow-sm">
